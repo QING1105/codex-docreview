@@ -1,6 +1,7 @@
 """Scan only allowlisted release files; print locations and categories, never values."""
 from pathlib import Path, PurePosixPath
 import json
+import hashlib
 import re
 import sys
 import zipfile
@@ -16,7 +17,12 @@ RULES = {
 }
 FORBIDDEN = {'.docx', '.pdf', '.png', '.jpg', '.jpeg', '.zip', '.db', '.sqlite', '.log', '.pem', '.key'}
 
+APPROVED_ASSETS = {'assets/doc-review-logo.png': 'ab4a6ba172da74e9b21c6e96e3edbe0448f8fa6321b42d210caa6e4db127d454'}
+
 def scan_content(name, data):
+    asset_name = name.removeprefix('codex-docreview/')
+    if asset_name in APPROVED_ASSETS:
+        return [] if hashlib.sha256(data).hexdigest() == APPROVED_ASSETS[asset_name] else [{'file': name, 'category': 'changed-approved-asset'}]
     findings = []
     p = PurePosixPath(name)
     if p.suffix.lower() in FORBIDDEN or p.name in {'state.json', 'auth.json', 'config.toml', '.env'} or any(part.startswith('backup') for part in p.parts):

@@ -6,6 +6,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 FILES = [
+    "assets/doc-review-logo.png",
     ".codex/INSTALL.md", "skills/doc-review/scripts/bootstrap.ps1",
     "skills/doc-review/scripts/run.ps1",
     "pyproject.toml", "setup.py", "MANIFEST.in", "src/codex_docreview/__init__.py",

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/doc-review-logo.png" alt="Doc Review" width="300">
+</p>
+
 # Doc Review
 
 **在文档里批注，让 Codex 在当前聊天中修改，再带着修订记录导出 Word。**

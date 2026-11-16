@@ -29,3 +29,5 @@ build/
 *.whl
 *.tar.gz
 skills/doc-review/scripts/runtime/
+
+!assets/doc-review-logo.png

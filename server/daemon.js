@@ -8,7 +8,7 @@ const clone=x=>structuredClone(x);
 const content=b=>!!(b.text?.trim()||b.images?.length||b.rows?.length);
 const sameContent=(a,b)=>a&&b&&['text','formats','images','rows','type','checked'].every(k=>JSON.stringify(a[k])===JSON.stringify(b[k]));
 const { notifyThread } = require('./host-bridge');
-const PORT = +(process.env.DOCREVIEW_PORT || 4517);
+let PORT = +(process.env.DOCREVIEW_PORT || 4517);
 const DATA = process.env.DOCREVIEW_DATA || path.join(os.homedir(), '.codex-docreview');
 fs.mkdirSync(DATA, { recursive: true });
 const SF = path.join(DATA, 'state.json'), OF = path.join(DATA, 'original.docx');
@@ -17,6 +17,7 @@ let S = { mode: 'suggest', doc: null, blocks: [], baseline: [], comments: [], qu
 try { S = Object.assign(S, JSON.parse(fs.readFileSync(SF, 'utf8'))); } catch { }
 for (const q of S.queue) if (q.status === 'running') q.status = 'queued';
 for (const c of S.comments) if (c.status === 'running') c.status = 'queued';
+if (process.env.DOCREVIEW_INSTANCE_SESSION) S.sessionId = process.env.DOCREVIEW_INSTANCE_SESSION;
 const agent = { status: 'idle', mode: 'current-session', threadId: S.sessionId || null, log: [], err: null };
 const nid = p => p + (++S.seq);
 const now = () => new Date().toISOString().replace(/\.\d+Z$/, 'Z');
@@ -141,6 +142,7 @@ function requireSession(id) {
   if (!id || id !== S.sessionId) throw new Error('请在发起审阅的聊天中调用 doc_review_start，再继续处理。');
 }
 function bindSession(id, bridge) {
+  if(process.env.DOCREVIEW_INSTANCE_SESSION && id!==process.env.DOCREVIEW_INSTANCE_SESSION)throw new Error('这个审阅页属于另一条聊天，请在当前聊天调用 doc_review_start 获取独立页面。');
   if (typeof id !== 'string' || !id.trim()) throw new Error('需要当前 Codex 聊天 ID');
   if (S.sessionId && S.sessionId !== id) throw new Error('文档已绑定另一条聊天；请在原聊天中释放审阅后再启动。');
   if (bridge?.pipe) dispatchContext = { pipe:bridge.pipe, hostId:bridge.host_id };
@@ -191,7 +193,7 @@ function targetCell(b,row,col){if(row===undefined)return b;if(!b.rows?.[row]?.[c
 function formatPatch(input){const out={};for(const [k,v]of Object.entries(input||{})){if(['bold','italic','underline','strike'].includes(k))out[k]=!!v;else if(['font','eastAsia'].includes(k)&&typeof v==='string'&&v.length<=100&&!/[<>;\x00-\x1f]/.test(v))out[k]=v;else if(k==='size'&&+v>=6&&+v<=96)out[k]=+v;else if(['color','highlight'].includes(k)&&/^#[a-f0-9]{6}$/i.test(v))out[k]=v;else if(k==='highlight'&&v==='transparent')out[k]=v;else throw Error('文字格式值无效')}return out}
 function insertObject(afterId,obj){noView();const i=afterId?S.blocks.findIndex(x=>x.id===afterId):-1;if(afterId&&i<0)throw Error('插入位置已改变');const b={id:nid('b'),author:S.user,...obj};S.blocks.splice(i+1,0,b);if(S.mode==='edit')commit([b.id]);else changed();return b}
 const routes = {
-  'GET /api/ping': () => ({ ok: true, app: 'docreview', version: require('../.codex-plugin/plugin.json').version, mode: 'current-session' }),
+  'GET /api/ping': () => ({ ok: true, app: 'docreview', version: require('../.codex-plugin/plugin.json').version, mode: 'current-session', instance_key: process.env.DOCREVIEW_INSTANCE_KEY }),
   'GET /api/state': () => view(),
   'POST /api/session/bind': b => bindSession(b.session_id, b.host_bridge),
   'POST /api/session/next': b => nextTask(b),
@@ -248,6 +250,6 @@ const server = http.createServer(async (req, res) => {
   } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ error: e.message })); }
 });
 server.on('error', e => { console.error(e.code === 'EADDRINUSE' ? `端口 ${PORT} 已被占用（可能已经在运行）` : e.message); process.exit(1); });
-server.listen(PORT, '127.0.0.1', () => { console.log(`Doc Review: http://127.0.0.1:${PORT}/`);scheduleDispatch(); });
+server.listen(PORT, '127.0.0.1', () => { PORT=server.address().port;if(process.env.DOCREVIEW_INSTANCE_KEY)fs.writeFileSync(path.join(DATA,'endpoint.json'),JSON.stringify({port:PORT,pid:process.pid}));console.log(`Doc Review: http://127.0.0.1:${PORT}/`);scheduleDispatch(); });
 process.on('exit', () => { try { fs.writeFileSync(SF, JSON.stringify(S)); } catch { } });
 process.on('SIGINT', () => process.exit(0)); process.on('SIGTERM', () => process.exit(0));

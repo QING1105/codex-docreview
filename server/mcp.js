@@ -7,15 +7,12 @@ const PORT = +(process.env.DOCREVIEW_PORT || 4517);
 function call(method, p, data) {
   return new Promise((res, rej) => {
     const b = data ? Buffer.from(JSON.stringify(data)) : null;
-    const r = http.request({ host: '127.0.0.1', port: PORT, path: p, method, headers: { ...(b ? { 'Content-Type': 'application/json', 'Content-Length': b.length } : {}), ...(session.getStore() ? { 'X-Docreview-Session': session.getStore() } : {}) } }, x => { let s = ''; x.on('data', d => s += d); x.on('end', () => { try { const j = JSON.parse(s); j.error ? rej(new Error(j.error)) : res(j); } catch { rej(new Error(s.slice(0, 200))); } }); });
+    const r = http.request({ host: '127.0.0.1', port: session.getStore()?.port || PORT, path: p, method, headers: { ...(b ? { 'Content-Type': 'application/json', 'Content-Length': b.length } : {}), ...(session.getStore() ? { 'X-Docreview-Session': session.getStore().id } : {}) } }, x => { let s = ''; x.on('data', d => s += d); x.on('end', () => { try { const j = JSON.parse(s); j.error ? rej(new Error(j.error)) : res(j); } catch { rej(new Error(s.slice(0, 200))); } }); });
     r.on('error', rej); r.setTimeout(30000, () => r.destroy(new Error('本地服务无响应'))); if (b) r.write(b); r.end();
   });
 }
 async function ensure() {
-  try { const r = await call('GET', '/api/ping'); if (r.app !== 'docreview' || r.mode !== 'current-session') throw new Error('请重启 Doc Review 服务以加载当前聊天模式'); return; } catch (e) { if (!['ECONNREFUSED', 'ECONNRESET'].includes(e.code)) throw e; }
-  spawn(process.execPath, [path.join(__dirname, 'daemon.js')], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-  for (let i = 0; i < 30; i++) { await new Promise(r => setTimeout(r, 200)); try { const r = await call('GET', '/api/ping'); if (r.app !== 'docreview' || r.mode !== 'current-session') throw new Error('请重启 Doc Review 服务以加载当前聊天模式'); return; } catch (e) { if (!['ECONNREFUSED', 'ECONNRESET'].includes(e.code)) throw e; } }
-  throw new Error('本地服务启动失败');
+  session.getStore().port = await require('./instances').ensure(session.getStore().id);
 }
 const str = (d, req) => ({ type: 'string', description: d });
 const TOOLS = [
@@ -52,7 +49,7 @@ readline.createInterface({ input: process.stdin }).on('line', async line => {
     if (m.method === 'tools/list') return out({ id: m.id, result: { tools: TOOLS.map(({ run, ...t }) => t) } });
     if (m.method === 'tools/call') {
       const t = TOOLS.find(t => t.name === m.params.name); if (!t) return out({ id: m.id, error: { code: -32602, message: '未知工具' } });
-      try { const a = m.params.arguments || {}; if (typeof a.session_id !== 'string' || !a.session_id.trim()) throw new Error('请提供当前 Codex 聊天 ID'); await ensure(); const result = await session.run(a.session_id, () => t.run(a)); return out({ id: m.id, result: { content: [{ type: 'text', text: result }] } }); }
+      try { const a = m.params.arguments || {}; if (typeof a.session_id !== 'string' || !a.session_id.trim()) throw new Error('请提供当前 Codex 聊天 ID'); const result = await session.run({id:a.session_id}, async () => { await ensure(); return t.run(a); }); return out({ id: m.id, result: { content: [{ type: 'text', text: result }] } }); }
       catch (e) { return out({ id: m.id, result: { content: [{ type: 'text', text: '失败：' + e.message }], isError: true } }); }
     }
     out({ id: m.id, error: { code: -32601, message: 'method not found' } });

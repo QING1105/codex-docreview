@@ -4,7 +4,7 @@ const {spawn}=require('node:child_process'), fs=require('node:fs'), os=require('
 test('current chat review lifecycle, isolation, queue recovery and approval', async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'docreview-test-'));
  const port=24517, root=path.resolve(__dirname,'..');
- const env={...process.env,DOCREVIEW_PORT:String(port),DOCREVIEW_DATA:dir,DOCREVIEW_AUTODISPATCH:'0'};
+ const env={...process.env,DOCREVIEW_PORT:String(port),DOCREVIEW_DATA:dir,DOCREVIEW_AUTODISPATCH:'0',DOCREVIEW_LEGACY:'1'};
  let daemon;
  const start=async()=>{
   daemon=spawn(process.execPath,[path.join(root,'server/daemon.js')],{env,stdio:'ignore',windowsHide:true});

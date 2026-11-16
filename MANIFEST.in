@@ -1,0 +1,10 @@
+include runtime-files.json doctor.cmd doctor.ps1
+include .codex-plugin/plugin.json
+include server/*.js
+include web/index.html
+include skills/doc-review/SKILL.md
+include skills/doc-review/agents/openai.yaml
+include skills/doc-review/scripts/review.js
+include skills/doc-review/scripts/review.py
+include skills/doc-review/scripts/run.ps1
+include skills/doc-review/scripts/bootstrap.ps1

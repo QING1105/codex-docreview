@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "docreview": {
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${PLUGIN_ROOT}/skills/doc-review/scripts/run.ps1",
+        "--mcp"
+      ]
+    }
+  }
+}

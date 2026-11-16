@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>Doc Review</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f6f5f1;--paper:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e3e1da;--acc:#b4532a;--hl:#ffe9a8;--hl2:#ffd35c;--ins:#0a7a3e;--del:#b42318;--blue:#2563eb;--shadow:0 6px 24px #0000001f,0 1px 3px #00000014}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);display:flex;flex-direction:column}
+svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button,.btn{font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);background:var(--paper);border-radius:8px;cursor:pointer;color:var(--ink);text-decoration:none;white-space:nowrap}
+button:hover,.btn:hover{background:#f3f2ee}button.pri{background:var(--acc);border-color:var(--acc);color:#fff}button.pri:hover{background:#9c4522}
+button.ghost{border-color:transparent;background:none}button.ghost:hover{background:#efeee9}button.on{background:#1f2328;color:#fff;border-color:#1f2328}
+button:disabled{opacity:.4;cursor:default}button.sm{padding:2px 8px;font-size:12px;border-radius:6px}
+header{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--paper)}
+header h1{font-size:15px;margin:0 4px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:36vw}.sp{flex:1}
+.dd{position:relative}.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px;min-width:260px;z-index:30;display:none}
+.menu.open{display:block}.menu.up{top:auto;bottom:calc(100% + 10px)}.menu.left{right:auto;left:0}
+.mi{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:9px;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-size:14px}
+.mi:hover{background:#f3f2ee}.mi svg{margin-top:3px}.mi .t{flex:1}.mi small{display:block;color:var(--mute);font-size:12.5px}.mi .ck{color:var(--blue);visibility:hidden}.mi.sel .ck{visibility:visible}
+.mnote{font-size:12px;color:var(--mute);padding:6px 10px 4px;border-top:1px solid var(--line);margin-top:4px}.msep{height:1px;background:var(--line);margin:4px 2px}
+#modeBtn{border-radius:10px;background:#f3f2ee;border-color:transparent;padding:6px 10px}#modeBtn.edit{background:#e8f0ff;color:#1d4ed8}#modeBtn.suggest{background:#fff3df;color:#9a5300}
+main{flex:1;display:flex;min-height:0}
+#docwrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0}
+#doc{flex:1;overflow:auto;padding:28px 24px 140px}
+#page{width:100%;max-width:1000px;margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:52px 64px 52px 72px;min-height:60vh;font-family:"Songti SC","SimSun","Noto Serif CJK SC",Georgia,serif;font-size:16px;line-height:1.85}
+.row{position:relative;margin:0 0 .7em}.row .tag{position:absolute;left:-52px;top:3px;font:11px/1.6 sans-serif;color:#cbc8be;user-select:none;width:44px;text-align:right}
+.row.lock .tag::after{content:" 🔒"}
+.blk{min-height:1.85em;white-space:pre-wrap;word-break:break-word;border-radius:4px;outline:none;padding:1px 4px;margin:0 -4px}
+.blk[contenteditable=true]:hover{background:#fafaf7}.blk[contenteditable=true]:focus{background:#fffdf3;box-shadow:0 0 0 1px #f1dfa6}
+.blk.h1{font-size:26px;font-weight:700;margin-top:.5em}.blk.h2{font-size:21px;font-weight:700;margin-top:.7em}.blk.h3,.blk.h4,.blk.h5,.blk.h6{font-size:17px;font-weight:700}
+.row.li .blk{padding-left:1.6em;position:relative}.row.li .blk::before{content:attr(data-pre);position:absolute;left:4px;user-select:none}
+.todo-check{position:absolute;left:-24px;top:9px;width:16px;height:16px}dialog{border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:22px}dialog input{font:inherit;padding:6px;border:1px solid var(--line);border-radius:6px}
+.blk.code{font:13px/1.6 Consolas,monospace;background:#f3f2ee;padding:10px 12px;margin:0}
+.row.flash .blk{animation:fl 1.6s}@keyframes fl{0%{background:#d9f2e3}100%{background:transparent}}
+.row.gone .blk{color:inherit}
+.row.bar::before{content:"";position:absolute;left:-7px;top:2px;bottom:2px;width:3px;border-radius:2px}.row.bar.chg::before{background:#e0a800}.row.bar.new::before{background:var(--ins)}.row.bar.gone::before{background:var(--del)}
+.acts{position:absolute;right:-8px;top:-14px;display:none;gap:4px;font-family:sans-serif;z-index:2}.row:hover .acts{display:flex}
+.acts button{box-shadow:0 1px 4px #0002;padding:2px 8px;font-size:12px}.acts .ok{color:var(--ins)}.acts .no{color:var(--del)}
+mark{background:var(--hl);border-radius:2px;cursor:pointer;padding:1px 0;color:inherit}mark.act{background:var(--hl2);outline:1px solid #e0a800}mark.res{background:#eee}
+ins{color:inherit;background:#deeee8;text-decoration:underline;text-decoration-color:#477469;text-underline-offset:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}del{color:inherit;background:#f8dfdd;text-decoration:line-through;text-decoration-color:#8f4b46;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+#fab{position:fixed;display:none;z-index:9;background:#1f2328;color:#fff;border:0;border-radius:8px;padding:5px 12px;box-shadow:0 2px 8px #0003}
+/* 底部工具栏 */
+#formatbar{position:absolute;left:50%;bottom:77px;transform:translateX(-50%);display:flex;align-items:center;gap:3px;padding:6px;background:white;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:20;max-width:calc(100% - 20px);overflow-x:auto;white-space:nowrap}#formatbar button{padding:5px 9px}#formatbar select{font:inherit;max-width:135px;padding:5px;border:1px solid var(--line);border-radius:6px}#formatbar label{font:11px sans-serif;display:flex;align-items:center;gap:2px}#formatbar input[type=color]{width:25px;height:27px;border:0;padding:0;background:none}.doc-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8px 0}.doc-table td{border:1px solid #d9d9d9;padding:8px;vertical-align:top}.table-tools{display:flex;align-items:center;justify-content:space-between;font:12px sans-serif;color:var(--mute)}figure{margin:12px 0}figure img{display:block}figcaption{margin-top:5px}.row.gone figure,.row.gone table{opacity:.5}#askBox{bottom:132px!important}
+#tb{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:6px;z-index:20}
+#tb>.dd>button,#tb>button{border:0;background:none;padding:7px 9px;border-radius:10px}#tb>.dd>button:hover,#tb>button:hover{background:#f1f0ec}
+#tb .vs{width:1px;height:20px;background:var(--line);margin:0 4px}#tb button.ask{background:#f1f0ec;padding:7px 14px;margin-left:4px}#tb button.ask:hover{background:#e7e5df}
+#tb .menu{min-width:190px}#tb .mi{padding:6px 10px;font-size:13.5px}
+#askBox{display:none;position:absolute;left:50%;bottom:76px;transform:translateX(-50%);width:min(560px,90%);background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:10px;z-index:21}
+#askBox.open{display:block}#askBox .q{margin-bottom:8px}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;cursor:pointer}.card.act{border-color:#e0a800;box-shadow:0 0 0 2px #ffe9a880}.card.res{opacity:.6}
+.q{color:var(--mute);border-left:3px solid var(--hl2);padding-left:8px;margin-bottom:6px;font-size:12.5px;max-height:3.2em;overflow:hidden}
+.rep{margin-top:8px;padding:6px 8px;background:#f6f5f1;border-radius:8px;white-space:pre-wrap}.rep b{font-size:12px;color:var(--acc)}
+.crow{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:10px;background:#eee;color:#555}.badge.queued{background:#e7ecff;color:#2a4bd7}.badge.running{background:#fff1c9;color:#8a5a00}.badge.answered{background:#d9f2e3;color:#0a6a36}.badge.failed{background:#fde3e0;color:#b42318}
+textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;resize:vertical}textarea:focus{outline:2px solid #e0a80066}
+#empty{text-align:center;color:var(--mute);padding:80px 20px;font-family:sans-serif}#empty .btn{margin-top:14px}
+.hint{font-size:12px;color:var(--mute)}#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1f2328;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;display:none;z-index:40}
+
+[hidden]{display:none!important}
+#commentPopup{position:fixed;width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 90px);display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);z-index:35;font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.popup-head{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+.popup-head strong{font-weight:600}.popup-head button{border:0;background:none;font-size:20px;padding:0 7px}
+#popupBody{overflow:auto;min-height:0;padding:14px 16px;overscroll-behavior:contain}
+#popupBody .card{margin:0;border:0;padding:0;cursor:default}
+#popupBody .card+.card{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+#popupBody .q{max-height:4.8em;overflow:auto;white-space:pre-wrap}
+#popupBody .rep{padding:10px 12px}#popupBody .comment-text{white-space:pre-wrap}
+#commentReply{border-top:1px solid var(--line);padding:12px 16px}
+#replyText{min-height:56px;max-height:150px}
+#composer{display:block;margin:0;border:0;background:none;padding:0}
+.comment-pin{position:absolute;right:-36px;top:0;padding:1px 5px;border-radius:12px;color:var(--acc);font:12px/1.6 sans-serif}
+.comment-pin:hover{background:var(--hl)}
+mark:focus-visible{outline:2px solid var(--acc)}
+#commentBtn{max-width:150px}#commentCount{font-size:12px;color:var(--mute)}
+@media(max-width:800px){#page{padding:30px 32px 30px 46px}#doc{padding:12px 12px 130px}.row .tag{left:-40px;width:32px}.comment-pin{right:-28px}}
+@media(max-width:520px){header{flex-wrap:wrap;gap:4px;padding:8px}header h1{max-width:45vw}#page{padding:24px 28px 24px 34px}.row .tag{left:-32px;width:25px}#doc{padding:8px 4px 120px}}
+</style></head><body>
+<svg style="display:none"><symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></symbol>
+<symbol id="i-sug" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 16h2.5L16 10.5 13.5 8 8 13.5V16z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-ck" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol><symbol id="i-dn" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></symbol>
+<symbol id="i-tt" viewBox="0 0 24 24"><path d="M4 7V5h11v2M9.5 5v14M14 13v-2h7v2M17.5 11v8"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="18" r=".8"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-rev" viewBox="0 0 24 24"><path d="M4 7h9M4 12h6M4 17h9"/><path d="M15 15l2 2 4-5"/></symbol>
+<symbol id="i-cm" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/></symbol></svg>
+
+<header><label class="btn ghost" title="打开 .docx / .md / .txt"><svg><use href="#i-file"/></svg>打开<input id="file" type="file" accept=".docx,.md,.markdown,.txt" hidden></label>
+<h1 id="title">Doc Review</h1><span class="sp"></span>
+<button id="commentBtn" class="ghost" title="查看全部批注"><svg><use href="#i-cm"/></svg>批注 <span id="commentCount"></span></button>
+<button id="rev" class="ghost on" aria-pressed="true" title="显示修订痕迹，逐条接受或拒绝"><svg><use href="#i-rev"/></svg>显示修订</button>
+<div class="dd"><button id="modeBtn"><svg><use id="modeIc" href="#i-sug"/></svg><span id="modeTxt">建议</span><svg style="width:12px"><use href="#i-dn"/></svg></button>
+ <div class="menu" id="modeMenu">
+  <button class="mi" data-mode="edit"><svg><use href="#i-pen"/></svg><span class="t">编辑<small>直接改文字，不留修订</small></span><svg class="ck"><use href="#i-ck"/></svg></button>
+  <button class="mi" data-mode="suggest"><svg><use href="#i-sug"/></svg><span class="t">建议<small>你的改动记为修订，像 Word 审阅</small></span><svg class="ck"><use href="#i-ck"/></svg></button>
+  <button class="mi" data-mode="view"><svg><use href="#i-eye"/></svg><span class="t">查看<small>只读，只能批注</small></span><svg class="ck"><use href="#i-ck"/></svg></button>
+  <div class="mnote">Codex 的改动始终记为修订，等你接受或拒绝。</div></div></div>
+<button class="pri" id="exp">导出 Word</button></header>
+
+<main><div id="docwrap"><div id="doc"><div id="page"><div id="empty">打开一份 .docx / .md / .txt，或把文件拖进来。<br>选中文字就能批注；批注会排队交给 Codex。<br><label class="btn">选择文件<input id="file2" type="file" accept=".docx,.md,.markdown,.txt" hidden></label></div></div></div>
+ <div id="askBox"><div class="q" id="askQ" style="display:none"></div><textarea id="askT" rows="2" placeholder="让 Codex 做什么…  Ctrl+Enter 发送，Esc 取消"></textarea><div class="crow"><span class="hint" id="askHint"></span><span class="sp"></span><button class="sm" id="askX">取消</button><button class="pri sm" id="askGo">发给 Codex</button></div></div>
+ <div id="formatbar" role="toolbar" aria-label="文字格式工具">
+ <select id="selectionFont" aria-label="选中文字字体"><option value="">字体</option><option>Arial</option><option>Times New Roman</option><option>Calibri</option><option>华文中宋</option><option>宋体</option><option>微软雅黑</option></select>
+ <select id="selectionSize" aria-label="字号"><option value="">字号</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>
+ <button data-format="bold" title="加粗" aria-label="加粗"><b>B</b></button><button data-format="italic" title="斜体" aria-label="斜体"><i>I</i></button><button data-format="underline" title="下划线" aria-label="下划线"><u>U</u></button>
+ <button id="highlightBtn" title="高亮" aria-label="高亮">▰</button><label title="高亮颜色">高亮<input type="color" id="highlightColor" value="#fff176" aria-label="高亮颜色"></label><label title="文字颜色">文字<input type="color" id="textColor" value="#b42318" aria-label="文字颜色"></label>
+ <button id="imageBtn" title="插入图片" aria-label="插入图片">图片</button><button id="tableBtn" title="插入表格" aria-label="插入表格">表格</button>
+ <input type="file" id="imageFile" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+</div>
+<div id="tb">
+  <div class="dd"><button title="段落样式" id="ttBtn"><svg><use href="#i-tt"/></svg></button>
+   <div class="menu up left" id="ttMenu"><button class="mi" data-type="p">正文</button><button class="mi" data-type="h1" style="font-size:18px;font-weight:700">标题 1</button><button class="mi" data-type="h2" style="font-size:16px;font-weight:700">标题 2</button><button class="mi" data-type="h3" style="font-weight:700">标题 3</button><button class="mi" data-type="li">• 列表</button><button class="mi" data-type="todo">☑ 转为待办 / checklist</button><button class="mi" data-type="code" style="font-family:Consolas,monospace">代码</button></div></div>
+  <button title="列表" id="liBtn"><svg><use href="#i-list"/></svg></button>
+  <button title="在当前段后插入一段" id="addBtn"><svg><use href="#i-plus"/></svg></button>
+  <button title="添加待办项" id="todoBtn">☑</button>
+  <span class="vs"></span>
+  <button title="批注选中的文字" id="cmBtn"><svg><use href="#i-cm"/></svg></button>
+  <div class="dd"><button title="更多" id="moreBtn"><svg><use href="#i-more"/></svg></button>
+   <div class="menu up" id="moreMenu">
+    <button class="mi" id="fontBtn" data-a="fonts">设置全文字体</button><div class="msep"></div>
+    <button class="mi" data-a="accept-all">接受全部修订</button><button class="mi" data-a="reject-all">拒绝全部修订</button><div class="msep"></div>
+    <button class="mi" data-a="exp-rev">导出修订版 Word</button><button class="mi" data-a="exp-clean">导出清洁稿 Word</button><button class="mi" data-a="exp-md">导出 Markdown</button></div></div>
+  <button class="ask" id="askBtn">问 Codex</button>
+ </div></div>
+</main>
+<section id="commentPopup" role="dialog" aria-modal="false" aria-labelledby="popupTitle" hidden>
+ <div class="popup-head"><strong id="popupTitle">批注</strong><span class="sp"></span><button id="commentClose" aria-label="关闭批注弹窗" title="关闭（Esc）">×</button></div>
+ <div id="popupBody">
+  <div id="composer" hidden><div class="q" id="cq"></div><textarea id="ct" rows="3" aria-label="批注内容" placeholder="描述你想修改的地方…"></textarea><div class="crow"><span class="hint">Ctrl+Enter 发送</span><span class="sp"></span><button class="sm" id="csave">只保存</button><button class="pri sm" id="csend">发给 Codex</button></div></div>
+  <div id="cards"></div>
+ </div>
+ <div id="commentReply" hidden><textarea id="replyText" rows="2" aria-label="继续回复批注" placeholder="继续回复或描述修改要求…"></textarea><div class="crow"><span class="hint" id="replyHint">回复会交给当前 Codex 聊天处理</span><span class="sp"></span><button class="pri sm" id="replySend">发送回复</button></div></div>
+</section>
+<dialog id="tableDialog"><form method="dialog"><h3>插入表格</h3><p><label>行数 <input id="tableRows" type="number" min="1" max="30" value="2"></label></p><p><label>列数 <input id="tableCols" type="number" min="1" max="12" value="2"></label></p><div class="crow"><button value="cancel">取消</button><button type="button" class="pri" id="insertTable">插入</button></div></form></dialog>
+<dialog id="fontDialog"><form method="dialog"><h3>全文字体</h3><p><label>英文字体 <input id="latinFont" list="latinFonts" required></label><datalist id="latinFonts"><option>Arial</option><option>Times New Roman</option><option>Calibri</option></datalist></p><p><label>中文字体 <input id="eastFont" list="eastFonts" required></label><datalist id="eastFonts"><option>华文中宋</option><option>宋体</option><option>微软雅黑</option></datalist></p><div class="crow"><button value="cancel">取消</button><button type="button" class="pri" id="saveFonts">应用</button></div></form></dialog>
+<button id="fab">＋ 批注</button><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let selecting=false;
+let V=null,showRev=true,active=null,sel=null,lastTexts={},editing=null,dirtyRender=false,lastBlock=null,wantFocus=null;
+const api=async(p,d)=>{const r=await fetch(p,d?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}:{});const j=await r.json();if(j.error){toast(j.error);throw new Error(j.error)}return j};
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3200)}
+const ST={draft:'未发送',queued:'排队中',running:'处理中',answered:'已回复',resolved:'已解决',failed:'失败'};
+const MODES={edit:['编辑','#i-pen'],suggest:['建议','#i-sug'],view:['查看','#i-eye']};
+const canEdit=b=>!['image','table'].includes(b.type)&&V.mode!=='view'&&!b.locked&&b.state!=='deleted';
+
+// ---------- 渲染 ----------
+function cssStyle(s={}){const a=[];if(s.bold!==undefined)a.push('font-weight:'+(s.bold?700:400));if(s.italic!==undefined)a.push('font-style:'+(s.italic?'italic':'normal'));if(s.underline||s.strike)a.push('text-decoration:'+[s.underline?'underline':'',s.strike?'line-through':''].join(' '));if(s.font||s.eastAsia)a.push('font-family:'+JSON.stringify(s.font||'Arial')+','+JSON.stringify(s.eastAsia||s.font||'SimSun'));if(s.size)a.push('font-size:'+Number(s.size)+'pt');if(s.color)a.push('color:'+s.color);if(s.highlight)a.push('background-color:'+s.highlight);return a.join(';')}
+function layoutStyle(b){const l=b.layout||{};return [l.align?'text-align:'+({both:'justify'}[l.align]||l.align):'',l.indent?'text-indent:'+l.indent+'pt':'',l.before?'margin-top:'+l.before+'pt':'',l.after?'margin-bottom:'+l.after+'pt':'',l.left?'padding-left:'+l.left+'pt':'',l.right?'padding-right:'+l.right+'pt':'',l.line?'line-height:'+l.line:''].join(';')}
+function objectHtml(b){const disabled=V.mode==='view'||b.state==='deleted';if(b.type==='table')return `<div class="table-tools"><span>表格</span><button class="sm" data-delete-object="${b.id}" ${disabled?'disabled':''}>删除表格</button></div><table class="doc-table" style="${b.layout?.width?'width:min(100%,'+b.layout.width+'pt)':''}"><tbody>${b.rows.map((row,r)=>'<tr>'+row.map((c,col)=>`<td colspan="${c.colSpan||1}"><div class="blk cell-editor" data-id="${b.id}" data-row="${r}" data-col="${col}" contenteditable="${!disabled}" spellcheck="false">${inline({...c,id:b.id})}</div></td>`).join('')+'</tr>').join('')}</tbody></table>`;
+return (b.images||[]).map((img,i)=>`<figure><img src="${E(img.data)}" alt="${E(img.alt||'图片')}" style="width:${img.width}px;max-width:100%;height:auto"><figcaption><button class="sm" data-remove-image="${i}" data-block="${b.id}" ${disabled?'disabled':''}>删除图片</button></figcaption></figure>`).join('')}
+function inline(b){
+  const ranges=[];
+  for(const c of V.comments.filter(c=>c.blockId===b.id&&c.quote)){
+    let i=b.text.indexOf(c.quote,Math.max(0,c.start-20));if(i<0)i=b.text.indexOf(c.quote);
+    if(i>=0)ranges.push([i,i+c.quote.length,c]);
+  }
+  const marked=(text,offset)=>{
+    const end=offset+text.length,pts=[...new Set([offset,end,...(b.formats||[]).flatMap(f=>[f.start,f.end]).filter(p=>p>offset&&p<end),...ranges.flatMap(r=>[r[0],r[1]]).filter(p=>p>offset&&p<end)])].sort((a,b)=>a-b);
+    return pts.slice(0,-1).map((a,k)=>{const z=pts[k+1],hit=ranges.filter(r=>r[0]<=a&&r[1]>=z),t='<span style="'+E(cssStyle(b.formats?.find(f=>f.start<=a&&f.end>a)?.style))+'">'+E(text.slice(a-offset,z-offset))+'</span>';
+      return hit.length?`<mark tabindex="0" role="button" aria-label="查看这处批注" data-c="${hit.map(r=>r[2].id).join(' ')}" class="${hit.some(r=>r[2].id===active)?'act':''} ${hit.every(r=>r[2].status==='resolved')?'res':''}">${t}</mark>`:t;
+    }).join('');
+  };
+  if(showRev&&b.segs){let offset=0;return b.segs.map(g=>{
+    if(g.t==='del')return `<del contenteditable="false">${E(g.s)}</del>`;
+    const text=marked(g.s,offset);offset+=g.s.length;return g.t==='ins'?`<ins>${text}</ins>`:text;
+  }).join('')}
+  return marked(b.text,0);
+}
+function renderDoc(){
+  if(!V.doc)return; if(editing || (getSelection()?.toString() && blkOf(getSelection().anchorNode))){dirtyRender=true;return} dirtyRender=false;
+  $('#title').textContent=V.doc.title;document.title=V.doc.title+' · Doc Review';
+  const sc=$('#doc').scrollTop;
+  $('#page').innerHTML=V.blocks.filter(b=>showRev||b.state!=='deleted').map(b=>{
+    const fl=lastTexts[b.id]!==undefined&&lastTexts[b.id]!==b.text&&b.state!=='deleted';
+    const bar=b.state==='deleted'?'gone':b.state==='new'?'new':b.state==='changed'?'chg':'';
+    const pins=V.comments.filter(c=>c.blockId===b.id);
+    const pin=pins.length?`<button class="comment-pin" contenteditable="false" data-comment="${pins[0].id}" aria-label="查看此段批注（${pins.length}条）">◌ ${pins.length}</button>`:'';
+    const acts=showRev&&b.state!=='same'?`<div class="acts"><button class="ok" data-acc="${b.id}">✓ 接受</button><button class="no" data-rej="${b.id}">✕ 拒绝</button></div>`:'';
+    return `<div class="row ${b.type==='li'?'li':''} ${b.locked?'lock':''} ${b.state==='deleted'?'gone':''} ${fl?'flash':''} ${showRev&&bar?'bar '+bar:''}" data-id="${b.id}"><span class="tag">${b.id}</span>${acts}${pin}${b.type==='todo'?`<input class="todo-check" type="checkbox" aria-label="完成待办项" data-todo="${b.id}" ${b.checked?'checked':''} ${V.mode==='view'||b.state==='deleted'?'disabled':''}>`:''}${b.type==='table'?objectHtml(b):`<div class="blk ${b.type}" style="${E(layoutStyle(b))}" data-id="${b.id}" data-pre="${E(b.prefix||'• ')}" contenteditable="${canEdit(b)}" spellcheck="false">${inline(b)}</div>${objectHtml(b)}`}</div>`}).join('')||'<div id="empty">文档是空的</div>';
+  lastTexts=Object.fromEntries(V.blocks.filter(b=>b.state!=='deleted').map(b=>[b.id,b.text]));$('#doc').scrollTop=sc;
+  if(wantFocus){const el=document.querySelector(`.blk[data-id="${wantFocus.id}"]`);if(el){if(!el.innerText.trim())el.textContent='';wantFocus.atEnd?caretTo(el,el.innerText.length):caretTo(el,0);wantFocus=null}}}
+let popupMode=null, popupAnchor=null, popupBlock=null, returnFocus=null, threadIds=[], replyDrafts={};
+function positionPopup(){
+  const box=$('#commentPopup');if(box.hidden)return;
+  const anchor=popupBlock&&document.querySelector(`.row[data-id="${popupBlock}"]`);
+  const r=anchor?anchor.getBoundingClientRect():popupAnchor;
+  const w=box.offsetWidth,h=box.offsetHeight;
+  const left=Math.max(12,Math.min(innerWidth-w-12,r?r.left:innerWidth/2-w/2));
+  let top=r?r.bottom+10:innerHeight/2-h/2;
+  if(top+h>innerHeight-12&&r)top=r.top-h-10;
+  top=Math.max(62,Math.min(Math.max(62,innerHeight-h-12),top));
+  box.style.left=left+'px';box.style.top=top+'px';
+}
+function closePopup(){
+  if(active&&popupMode==='thread')replyDrafts[active]=$('#replyText').value;
+  $('#commentPopup').hidden=true;popupMode=null;draft=null;active=null;
+  document.querySelectorAll('mark.act').forEach(m=>m.classList.remove('act'));
+  if(returnFocus&&returnFocus.isConnected)returnFocus.focus({preventScroll:true});
+}
+function openThread(id,anchor,ids){
+  if(active&&popupMode==='thread')replyDrafts[active]=$('#replyText').value;
+  const c=V.comments.find(c=>c.id===id);if(!c)return;
+  returnFocus=document.activeElement;active=id;popupMode='thread';draft=null;
+  threadIds=ids||[id];popupBlock=c.blockId;popupAnchor=anchor||null;
+  $('#commentPopup').hidden=false;$('#replyText').value=replyDrafts[id]||'';
+  renderPopup();$('#commentClose').focus({preventScroll:true});
+  document.querySelectorAll('mark').forEach(m=>m.classList.toggle('act',m.dataset.c.split(' ').includes(id)));
+}
+function openComments(){
+  if(active&&popupMode==='thread')replyDrafts[active]=$('#replyText').value;
+  returnFocus=$('#commentBtn');active=null;popupMode='list';draft=null;popupBlock=null;
+  popupAnchor=$('#commentBtn').getBoundingClientRect();$('#commentPopup').hidden=false;renderPopup();$('#commentClose').focus();
+}
+function renderPopup(){
+  if(!popupMode)return;
+  $('#composer').hidden=popupMode!=='compose';$('#cards').hidden=popupMode==='compose';
+  $('#commentReply').hidden=popupMode!=='thread';
+  $('#popupTitle').textContent=popupMode==='compose'?'添加批注':popupMode==='list'?'全部批注':'批注与回复';
+  if(popupMode==='compose'){positionPopup();return}
+  let comments=popupMode==='list'?V.comments.slice().reverse():V.comments.filter(c=>threadIds.includes(c.id));
+  if(popupMode==='thread'&&!comments.some(c=>c.id===active)){closePopup();return}
+  const drafts=V.comments.filter(c=>['draft','failed'].includes(c.status)).length;
+  $('#cards').innerHTML=(popupMode==='list'&&drafts?`<div class="crow" style="margin-bottom:12px"><button class="sm" data-a="sendall">发送 ${drafts} 条待处理批注</button></div>`:'')+comments.map(c=>`<div class="card ${c.status==='resolved'?'res':''}" data-c="${c.id}">
+    ${c.quote?`<div class="q">${E(c.quote)}</div>`:c.blockId==='__document__'?'<div class="q">整篇文档</div>':''}<div class="comment-text">${E(c.text)}</div>
+    ${c.replies.map(r=>`<div class="rep"><b>${E(r.author)}</b><br>${E(r.text)}</div>`).join('')}
+    <div class="crow"><span class="badge ${c.status}">${ST[c.status]||c.status}</span><span class="sp"></span>
+    ${popupMode==='list'||c.id!==active?'<button class="sm" data-a="open">查看 / 回复</button>':''}
+    ${['draft','failed','answered'].includes(c.status)?`<button class="sm" data-a="send">${c.status==='answered'?'再处理一次':'发给 Codex'}</button>`:''}
+    ${c.status==='resolved'?'<button class="sm" data-a="reopen">重开</button>':!['running','queued'].includes(c.status)?'<button class="sm" data-a="resolve">解决</button>':''}
+    ${c.status!=='running'?'<button class="sm" data-a="del">删除</button>':''}</div></div>`).join('')||'<div class="hint">选中文档里的文字，即可添加批注。</div>';
+  const c=V.comments.find(c=>c.id===active),busy=c&&['running','queued'].includes(c.status);
+  const pending=V.queue.find(q=>q.commentId===active&&q.status==='queued');
+  $('#replySend').disabled=!!busy;$('#replyHint').textContent=c?.status==='queued'?(pending?.deliveryError?'正在恢复与 Codex 的连接，恢复后自动处理':pending?.delivered?'已送入当前聊天，正在排队处理':'正在发送到当前聊天…'):busy?'正在处理这条批注；回复内容可先写在这里':'回复会交给当前 Codex 聊天处理';
+  positionPopup();
+}
+function renderControls(){
+  if(V.doc?.fonts)$('#page').style.fontFamily=JSON.stringify(V.doc.fonts.latin)+','+JSON.stringify(V.doc.fonts.eastAsia)+',serif';else $('#page').style.removeProperty('font-family');
+  const count=V.comments.filter(c=>c.status!=='resolved').length;$('#commentCount').textContent=count?`(${count})`:'';
+  const [mt,mi]=MODES[V.mode||'suggest'];$('#modeTxt').textContent=mt;$('#modeIc').setAttribute('href',mi);$('#modeBtn').className=V.mode;
+  document.querySelectorAll('#modeMenu .mi').forEach(x=>x.classList.toggle('sel',x.dataset.mode===V.mode));
+  const ro=V.mode==='view';['ttBtn','liBtn','addBtn','todoBtn','fontBtn','selectionFont','selectionSize','highlightBtn','highlightColor','textColor','imageBtn','tableBtn'].forEach(id=>$('#'+id).disabled=ro);document.querySelectorAll('[data-format]').forEach(e=>e.disabled=ro);
+}
+function render(){if(!V)return;renderDoc();renderControls();renderPopup()}
+const es=new EventSource('/api/events');
+es.addEventListener('state',e=>{const old=V;V=JSON.parse(e.data);render();if(old){const replied=V.comments.find(c=>c.replies.length>(old.comments.find(x=>x.id===c.id)?.replies.length??c.replies.length)&&c.replies.at(-1)?.author==='Codex');if(replied){toast('Codex 已回复批注');if(!popupMode)openThread(replied.id)}}});
+$('#commentBtn').onclick=openComments;$('#commentClose').onclick=closePopup;
+$('#doc').addEventListener('scroll',positionPopup);window.addEventListener('resize',positionPopup);
+new ResizeObserver(positionPopup).observe($('#commentPopup'));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&popupMode){e.preventDefault();closePopup()}});
+document.addEventListener('pointerdown',e=>{if(popupMode&&popupMode!=='compose'&&!e.target.closest('#commentPopup,mark,.comment-pin,#commentBtn'))closePopup()});
+async function sendReply(){
+  const id=active,text=$('#replyText').value.trim();if(!id||!text)return;
+  $('#replySend').disabled=true;
+  try{await api('/api/comment/followup',{id,text});replyDrafts[id]='';if(active===id)$('#replyText').value='';toast('回复已发送，Codex 会自动处理')}finally{renderPopup()}
+}
+$('#replySend').onclick=sendReply;$('#replyText').onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();if(!$('#replySend').disabled)sendReply()}};
+
+// ---------- 直接编辑 ----------
+const blkOf=n=>{while(n&&!(n.nodeType===1&&n.classList&&n.classList.contains('blk')))n=n.parentNode;return n};
+const selectionText=r=>{const f=r.cloneContents();f.querySelectorAll('del').forEach(n=>n.remove());return f.textContent};
+const textOf=el=>{const f=el.cloneNode(true);f.querySelectorAll('del').forEach(n=>n.remove());f.querySelectorAll('br').forEach(n=>n.replaceWith('\n'));return f.textContent.replace(/\n$/,'')};
+function caretOff(el){const s=getSelection();if(!s.rangeCount)return 0;const r=s.getRangeAt(0),p=document.createRange();p.selectNodeContents(el);p.setEnd(r.startContainer,r.startOffset);return selectionText(p).length}
+function caretTo(el,off){el.focus();const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,left=off;while((n=w.nextNode())){if(n.parentElement.closest('del'))continue;if(left<=n.length){const r=document.createRange();r.setStart(n,left);r.collapse(true);const s=getSelection();s.removeAllRanges();s.addRange(r);return}left-=n.length}const r=document.createRange();r.selectNodeContents(el);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+async function flush(el){if(!el||!editing||editing.id!==el.dataset.id||editing.row!==el.dataset.row||editing.col!==el.dataset.col)return;const session=editing,t=textOf(el);if(t===session.start)return;
+  try{if(el.dataset.row!==undefined){session.start=t;await api('/api/table/cell',{id:el.dataset.id,row:+el.dataset.row,col:+el.dataset.col,text:t})}else if(!t.trim()){if(V.blocks.some(b=>b.id===el.dataset.id&&b.state!=='deleted'))await api('/api/block/delete',{id:el.dataset.id})}else if(t!==session.start){session.start=t;await api('/api/block/edit',{id:el.dataset.id,text:t})}}catch{if(editing===session)editing=null;render()}}
+$('#page').addEventListener('focusin',e=>{const el=blkOf(e.target);if(!el||el.contentEditable!=='true')return;editing={id:el.dataset.id,row:el.dataset.row,col:el.dataset.col,start:textOf(el)};lastBlock=el.dataset.id});
+$('#page').addEventListener('focusout',async e=>{const el=blkOf(e.target);if(!el||!editing)return;const session=editing;await flush(el);if(editing===session)editing=null;if(dirtyRender&&!editing)render()});
+$('#page').addEventListener('keydown',async e=>{const el=blkOf(e.target);if(!el||el.contentEditable!=='true')return;
+  if((e.ctrlKey||e.metaKey)&&['b','i','u'].includes(e.key.toLowerCase())){e.preventDefault();document.querySelector('[data-format="'+({b:'bold',i:'italic',u:'underline'}[e.key.toLowerCase()])+'"]').click();return}
+  if(e.key==='Escape'){el.blur();return}
+  if(el.dataset.row!==undefined)return;
+  if(e.key==='Enter'&&!e.shiftKey&&!el.classList.contains('code')){e.preventDefault();const t=textOf(el),o=caretOff(el),b=V.blocks.find(x=>x.id===el.dataset.id);
+    const type=b&&['li','todo'].includes(b.type)?b.type:'p';let nb;
+    if(o===0&&t.trim()){const rows=V.blocks.filter(x=>x.state!=='deleted'),i=rows.findIndex(x=>x.id===el.dataset.id);nb=await api('/api/block/insert',{afterId:i>0?rows[i-1].id:null,text:' ',type})}
+    else{el.innerText=t.slice(0,o);await flush(el);nb=await api('/api/block/insert',{afterId:el.dataset.id,text:t.slice(o)||' ',type})}
+    editing=null;wantFocus={id:nb.id};render();return}
+  if(e.key==='Backspace'&&!textOf(el)){e.preventDefault();const rows=[...document.querySelectorAll('.blk[contenteditable=true]')],i=rows.indexOf(el),prev=rows[i-1];
+    editing=null;await api('/api/block/delete',{id:el.dataset.id});if(prev){wantFocus={id:prev.dataset.id,atEnd:true}}render()}});
+$('#page').addEventListener('change',e=>{if(e.target.dataset.todo)api('/api/block/check',{id:e.target.dataset.todo,checked:e.target.checked})});
+$('#page').addEventListener('click',e=>{const a=e.target.dataset||{};if(a.deleteObject)return api('/api/block/delete',{id:a.deleteObject});if(a.removeImage!==undefined)return api('/api/image/delete',{id:a.block,index:+a.removeImage});if(a.acc)return api('/api/block/accept',{id:a.acc});if(a.rej)return api('/api/block/reject',{id:a.rej});
+  const pin=e.target.closest('[data-comment]'),m=e.target.closest('mark');
+  if(pin){const c=V.comments.find(c=>c.id===pin.dataset.comment);openThread(c.id,pin.getBoundingClientRect(),V.comments.filter(x=>x.blockId===c.blockId).map(x=>x.id))}
+  else if(m&&!getSelection().toString().trim())openThread(m.dataset.c.split(' ')[0],m.getBoundingClientRect(),m.dataset.c.split(' '));
+});
+$('#page').addEventListener('keydown',e=>{if(e.target.matches('mark')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();e.stopPropagation();openThread(e.target.dataset.c.split(' ')[0],e.target.getBoundingClientRect(),e.target.dataset.c.split(' '))}},true);
+
+// ---------- 选区 → 批注 ----------
+function curSel(){const s=getSelection();if(!s.rangeCount||s.isCollapsed)return null;const r=s.getRangeAt(0),el=blkOf(r.startContainer);if(!el||!$('#page').contains(el))return null;
+  const rr=r.cloneRange();if(blkOf(r.endContainer)!==el)rr.setEnd(el,el.childNodes.length);const pre=document.createRange();pre.selectNodeContents(el);pre.setEnd(rr.startContainer,rr.startOffset);
+  const quote=selectionText(rr)||rr.toString();if(!quote.trim())return null;return{blockId:el.dataset.id,...(el.dataset.row!==undefined?{row:+el.dataset.row,col:+el.dataset.col}:{}),quote,start:selectionText(pre).length,rect:rr.getBoundingClientRect()}}
+function updateSelection(){const f=$('#fab');sel=curSel();if(sel){const b=V.blocks.find(b=>b.id===sel.blockId),t=sel.row!==undefined?b?.rows[sel.row][sel.col]:b,style=t?.formats?.find(f=>f.start<=sel.start&&f.end>sel.start)?.style||{};document.querySelectorAll('[data-format]').forEach(e=>{e.classList.toggle('on',!!style[e.dataset.format]);e.setAttribute('aria-pressed',String(!!style[e.dataset.format]))})}if(!sel||selecting){f.style.display='none';return}
+  f.style.display='block';f.style.left=Math.min(innerWidth-110,sel.rect.right+6)+'px';f.style.top=Math.max(50,sel.rect.top-36)+'px'}
+document.addEventListener('selectionchange',updateSelection);
+$('#page').addEventListener('pointerdown',()=>{selecting=true;$('#fab').style.display='none'});
+document.addEventListener('pointerup',()=>{selecting=false;requestAnimationFrame(updateSelection)});
+let draft=null;
+function composer(s){draft=s;active=null;popupMode='compose';popupBlock=s.blockId;popupAnchor=s.rect;returnFocus=document.activeElement;$('#commentPopup').hidden=false;$('#cq').textContent=s.quote;$('#ct').value='';renderPopup();$('#ct').focus();$('#fab').style.display='none'}
+async function submit(send){const t=$('#ct').value.trim();if(!t||!draft)return;const d=draft;
+  $('#csend').disabled=$('#csave').disabled=true;
+  try{const c=await api('/api/comments',{blockId:d.blockId,quote:d.quote,start:d.start,text:t,send});draft=null;getSelection().removeAllRanges();V=await api('/api/state');openThread(c.id);if(send)toast('批注已发送，Codex 会自动处理')}
+  finally{$('#csend').disabled=$('#csave').disabled=false}
+}
+$('#fab').onmousedown=e=>{e.preventDefault();if(sel)composer(sel)};
+$('#csend').onclick=()=>submit(true);$('#csave').onclick=()=>submit(false);
+$('#ct').onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();if(!$('#csend').disabled)submit(true)}};
+$('#cards').onclick=e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(a==='sendall')return api('/api/comment/send-all',{});const card=e.target.closest('.card');if(!card)return;const id=card.dataset.c;
+  if(a==='send')api('/api/comment/send',{id});else if(a==='resolve')api('/api/comment/resolve',{id});else if(a==='reopen')api('/api/comment/resolve',{id,reopen:true});else if(a==='del')api('/api/comment/delete',{id});
+  else if(a==='open')openThread(id);
+};
+
+// ---------- 菜单与工具栏 ----------
+function closeMenus(except){document.querySelectorAll('.menu.open').forEach(m=>{if(m!==except)m.classList.remove('open')})}
+function toggle(menu){const o=!menu.classList.contains('open');closeMenus();menu.classList.toggle('open',o)}
+document.addEventListener('mousedown',e=>{if(!e.target.closest('.dd'))closeMenus()});
+$('#modeBtn').onclick=()=>toggle($('#modeMenu'));
+$('#modeMenu').onclick=async e=>{const m=e.target.closest('[data-mode]');if(!m)return;closeMenus();if(editing){const el=document.activeElement;await flush(blkOf(el));el&&el.blur()}await api('/api/mode',{mode:m.dataset.mode});toast({edit:'编辑模式：改动直接生效',suggest:'建议模式：你的改动会记为修订',view:'查看模式：只读，可以批注'}[m.dataset.mode])};
+$('#tb').addEventListener('mousedown',e=>{if(!e.target.closest('textarea,input,select,label'))e.preventDefault()});// 保住光标和选区
+const focusedBlk=()=>{const el=blkOf(document.activeElement);return el&&el.contentEditable==='true'?el:null};
+$('#ttBtn').onclick=()=>toggle($('#ttMenu'));
+async function setType(type){const el=focusedBlk(),id=el?el.dataset.id:lastBlock;if(!id)return toast('先点进要改样式的段落');if(el)await flush(el);await api('/api/block/type',{id,type});
+  getSelection().removeAllRanges();editing=null;V=await api('/api/state');render();if(el){wantFocus={id};render()}}
+$('#ttMenu').onclick=e=>{const t=e.target.closest('[data-type]');if(!t)return;closeMenus();setType(t.dataset.type)};
+$('#liBtn').onclick=()=>{const el=focusedBlk(),id=el?el.dataset.id:lastBlock,b=V.blocks.find(x=>x.id===id);if(!b)return toast('先点进一个段落');setType(b.type==='li'?'p':'li')};
+$('#addBtn').onclick=async()=>{if(!V||!V.doc)return;const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');const after=(el&&el.dataset.id)||lastBlock||(live.length?live[live.length-1].id:null);
+  const nb=await api('/api/block/insert',{afterId:after,text:' ',type:'p'});wantFocus={id:nb.id};editing=null;render()};
+$('#cmBtn').onclick=()=>{const s=curSel()||sel;if(!s)return toast('先在文档里选中要批注的文字');composer(s)};
+let formatSelection=null;
+$('#formatbar').addEventListener('pointerdown',e=>{const selected=curSel();if(selected)formatSelection=selected;if(e.target.closest('button'))e.preventDefault()});
+function restoreSelection(d){const el=document.querySelector(`.blk[data-id="${d.blockId}"]${d.row!==undefined?`[data-row="${d.row}"][data-col="${d.col}"]`:''}`);if(!el)return;el.focus();const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,pos=0,start,end;while(n=w.nextNode()){if(n.parentElement.closest('del'))continue;if(!start&&pos+n.length>=d.start)start=[n,d.start-pos];if(pos+n.length>=d.start+d.quote.length){end=[n,d.start+d.quote.length-pos];break}pos+=n.length}if(start&&end){const r=document.createRange();r.setStart(...start);r.setEnd(...end);getSelection().removeAllRanges();getSelection().addRange(r)}}
+async function applyTextStyle(patch){const d=curSel()||formatSelection;if(!d)return toast('先选中要设置格式的文字');const el=focusedBlk();if(el)await flush(el);getSelection().removeAllRanges();editing=null;await api('/api/format',{id:d.blockId,row:d.row,col:d.col,start:d.start,end:d.start+d.quote.length,style:patch});V=await api('/api/state');render();restoreSelection(d);formatSelection=d}
+$('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key){const d=curSel()||formatSelection,b=V.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows[d.row][d.col]:b;const current=t?.formats?.find(f=>f.start<=d.start&&f.end>d.start)?.style||{};applyTextStyle({[key]:!current[key]})}});
+$('#selectionFont').onchange=e=>{if(e.target.value)applyTextStyle({font:e.target.value,eastAsia:e.target.value})};
+$('#selectionSize').onchange=e=>{if(e.target.value)applyTextStyle({size:+e.target.value})};
+$('#highlightBtn').onclick=()=>applyTextStyle({highlight:$('#highlightColor').value});$('#highlightColor').onchange=e=>applyTextStyle({highlight:e.target.value});$('#textColor').onchange=e=>applyTextStyle({color:e.target.value});
+async function insertAfter(){const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');return live.some(b=>b.id===lastBlock)?lastBlock:live.at(-1)?.id||null}
+$('#tableBtn').onclick=()=>$('#tableDialog').showModal();$('#insertTable').onclick=async()=>{const afterId=await insertAfter();await api('/api/table/insert',{afterId,rows:+$('#tableRows').value,cols:+$('#tableCols').value});$('#tableDialog').close();toast('表格已插入，可直接输入单元格')};
+$('#imageBtn').onclick=()=>$('#imageFile').click();$('#imageFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=data});const width=Math.min(600,img.naturalWidth),height=img.naturalHeight*width/img.naturalWidth;await api('/api/image/insert',{afterId:await insertAfter(),data,width,height,alt:f.name});e.target.value='';toast('图片已插入')};
+$('#saveFonts').onclick=async()=>{await api('/api/fonts',{latin:$('#latinFont').value,east_asia:$('#eastFont').value});$('#fontDialog').close();toast('字体已应用到全文和 Word 导出')};
+$('#todoBtn').onclick=async()=>{const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');const nb=await api('/api/block/insert',{afterId:el?.dataset.id||lastBlock||live.at(-1)?.id||null,text:' ',type:'todo'});wantFocus={id:nb.id};editing=null;render()};
+$('#moreBtn').onclick=()=>toggle($('#moreMenu'));
+$('#moreMenu').onclick=async e=>{const a=(e.target.closest('[data-a]')||{}).dataset;if(!a)return;closeMenus();if(!V||!V.doc)return toast('先打开文档');
+  if(a.a==='fonts'){$('#latinFont').value=V.doc.fonts?.latin||'Arial';$('#eastFont').value=V.doc.fonts?.eastAsia||'华文中宋';$('#fontDialog').showModal()}
+  if(a.a==='accept-all'&&confirm('接受全部修订？之后这些改动不再显示为修订。'))api('/api/accept-all',{});
+  if(a.a==='reject-all'&&confirm('拒绝全部修订？所有未接受的改动都会撤回。'))api('/api/reject-all',{});
+  if(a.a==='exp-rev')location.href='/api/export.docx';if(a.a==='exp-clean')location.href='/api/export-clean.docx';if(a.a==='exp-md')location.href='/api/export.md'};
+let askSel=null;
+$('#askBtn').onclick=()=>{if(!V||!V.doc)return toast('先打开文档');askSel=curSel();const box=$('#askBox');box.classList.add('open');
+  $('#askQ').style.display=askSel?'block':'none';$('#askQ').textContent=askSel?askSel.quote:'';$('#askHint').textContent=askSel?'针对选中的文字，会存成一条批注':'针对整篇文档';$('#askT').value='';$('#askT').focus()};
+const askClose=()=>{$('#askBox').classList.remove('open');askSel=null};
+async function askGo(){const t=$('#askT').value.trim();if(!t)return;if(askSel){const c=await api('/api/comments',{blockId:askSel.blockId,quote:askSel.quote,start:askSel.start,text:t,send:true});V=await api('/api/state');openThread(c.id)}else{const c=await api('/api/chat',{text:t});V=await api('/api/state');openThread(c.id);toast('请求已发送，Codex 会自动处理')}askClose();getSelection().removeAllRanges()}
+$('#askGo').onclick=askGo;$('#askX').onclick=askClose;$('#askT').onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))askGo();if(e.key==='Escape')askClose()};
+$('#rev').onclick=async()=>{const el=focusedBlk();if(el){await flush(el);el.blur()}showRev=!showRev;$('#rev').classList.toggle('on',showRev);$('#rev').setAttribute('aria-pressed',String(showRev));render()};
+$('#exp').onclick=()=>{if(!V||!V.doc)return toast('先打开文档');location.href='/api/export.docx'};
+async function openFile(f){if(!f)return;if(V&&V.doc&&V.comments.length&&!confirm('打开新文档会清空当前文档的批注和修订，继续？'))return;const buf=new Uint8Array(await f.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=32768)s+=String.fromCharCode.apply(null,buf.subarray(i,i+32768));closePopup();formatSelection=null;lastBlock=null;replyDrafts={};lastTexts={};await api('/api/open',{name:f.name,b64:btoa(s)});toast('已打开 '+f.name)}
+$('#file').onchange=e=>{openFile(e.target.files[0]);e.target.value=''};document.addEventListener('change',e=>{if(e.target.id==='file2')openFile(e.target.files[0])});
+document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',e=>{e.preventDefault();openFile(e.dataTransfer.files[0])});
+</script></body></html>

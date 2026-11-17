@@ -19,7 +19,7 @@ header h1{font-size:15px;margin:0 4px;font-weight:600;overflow:hidden;text-overf
 #modeBtn{border-radius:10px;background:#f3f2ee;border-color:transparent;padding:6px 10px}#modeBtn.edit{background:#e8f0ff;color:#1d4ed8}#modeBtn.suggest{background:#fff3df;color:#9a5300}
 main{flex:1;display:flex;min-height:0}
 #docwrap{flex:1;position:relative;display:flex;flex-direction:column;min-width:0}
-#doc{flex:1;overflow:auto;padding:28px 24px 140px}
+#doc{flex:1;overflow:auto;overflow-anchor:none;padding:28px 24px 140px}
 #page{width:100%;max-width:1000px;margin:0 auto;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:52px 64px 52px 72px;min-height:60vh;font-family:"Songti SC","SimSun","Noto Serif CJK SC",Georgia,serif;font-size:16px;line-height:1.85}
 .row{position:relative;margin:0 0 .7em}.row .tag{position:absolute;left:-52px;top:3px;font:11px/1.6 sans-serif;color:#cbc8be;user-select:none;width:44px;text-align:right}
 .row.lock .tag::after{content:" 🔒"}
@@ -147,7 +147,7 @@ const MODES={edit:['编辑','#i-pen'],suggest:['建议','#i-sug'],view:['查看'
 const canEdit=b=>!['image','table'].includes(b.type)&&V.mode!=='view'&&!b.locked&&b.state!=='deleted';
 
 // ---------- 渲染 ----------
-function cssStyle(s={}){const a=[];if(s.bold!==undefined)a.push('font-weight:'+(s.bold?700:400));if(s.italic!==undefined)a.push('font-style:'+(s.italic?'italic':'normal'));if(s.underline||s.strike)a.push('text-decoration:'+[s.underline?'underline':'',s.strike?'line-through':''].join(' '));if(s.font||s.eastAsia)a.push('font-family:'+JSON.stringify(s.font||'Arial')+','+JSON.stringify(s.eastAsia||s.font||'SimSun'));if(s.size)a.push('font-size:'+Number(s.size)+'pt');if(s.color)a.push('color:'+s.color);if(s.highlight)a.push('background-color:'+s.highlight);return a.join(';')}
+function cssStyle(s={}){const a=[];if(s.bold!==undefined)a.push('font-weight:'+(s.bold?700:400));if(s.italic!==undefined)a.push('font-style:'+(s.italic?'italic':'normal'));if(s.underline||s.strike)a.push('text-decoration:'+[s.underline?'underline':'',s.strike?'line-through':''].join(' '));if(s.font||s.eastAsia)a.push('font-family:'+JSON.stringify(s.font||'Arial')+','+JSON.stringify(s.eastAsia||s.font||'SimSun'));if(s.size)a.push('font-size:'+Number(s.size)+'pt');if(s.color)a.push('color:'+(s.color==='auto'?'var(--ink)':s.color));if(s.highlight)a.push('background-color:'+s.highlight);return a.join(';')}
 function layoutStyle(b){const l=b.layout||{};return [l.align?'text-align:'+({both:'justify'}[l.align]||l.align):'',l.indent?'text-indent:'+l.indent+'pt':'',l.before?'margin-top:'+l.before+'pt':'',l.after?'margin-bottom:'+l.after+'pt':'',l.left?'padding-left:'+l.left+'pt':'',l.right?'padding-right:'+l.right+'pt':'',l.line?'line-height:'+l.line:''].join(';')}
 function objectHtml(b){const disabled=V.mode==='view'||b.state==='deleted';if(b.type==='table')return `<div class="table-tools"><span>表格</span><button class="sm" data-delete-object="${b.id}" ${disabled?'disabled':''}>删除表格</button></div><table class="doc-table" style="${b.layout?.width?'width:min(100%,'+b.layout.width+'pt)':''}"><tbody>${b.rows.map((row,r)=>'<tr>'+row.map((c,col)=>`<td colspan="${c.colSpan||1}"><div class="blk cell-editor" data-id="${b.id}" data-row="${r}" data-col="${col}" contenteditable="${!disabled}" spellcheck="false">${inline({...c,id:b.id})}</div></td>`).join('')+'</tr>').join('')}</tbody></table>`;
 return (b.images||[]).map((img,i)=>`<figure><img src="${E(img.data)}" alt="${E(img.alt||'图片')}" style="width:${img.width}px;max-width:100%;height:auto"><figcaption><button class="sm" data-remove-image="${i}" data-block="${b.id}" ${disabled?'disabled':''}>删除图片</button></figcaption></figure>`).join('')}
@@ -170,7 +170,7 @@ function inline(b){
   return marked(b.text,0);
 }
 function renderDoc(){
-  if(!V.doc)return; if(editing || (getSelection()?.toString() && blkOf(getSelection().anchorNode))){dirtyRender=true;return} dirtyRender=false;
+  if(!V.doc)return; if(formatting || editing || (getSelection()?.toString() && blkOf(getSelection().anchorNode))){dirtyRender=true;return} dirtyRender=false;
   $('#title').textContent=V.doc.title;document.title=V.doc.title+' · Doc Review';
   const sc=$('#doc').scrollTop;
   $('#page').innerHTML=V.blocks.filter(b=>showRev||b.state!=='deleted').map(b=>{
@@ -327,26 +327,41 @@ $('#liBtn').onclick=()=>{const el=focusedBlk(),id=el?el.dataset.id:lastBlock,b=V
 $('#addBtn').onclick=async()=>{if(!V||!V.doc)return;const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');const after=(el&&el.dataset.id)||lastBlock||(live.length?live[live.length-1].id:null);
   const nb=await api('/api/block/insert',{afterId:after,text:' ',type:'p'});wantFocus={id:nb.id};editing=null;render()};
 $('#cmBtn').onclick=()=>{const s=curSel()||sel;if(!s)return toast('先在文档里选中要批注的文字');composer(s)};
-let formatSelection=null;
+let formatSelection=null,formatting=false,formatWork=Promise.resolve();
 $('#formatbar').addEventListener('pointerdown',e=>{const selected=curSel();if(selected)formatSelection=selected;if(e.target.closest('button'))e.preventDefault()});
-function restoreSelection(d){const el=document.querySelector(`.blk[data-id="${d.blockId}"]${d.row!==undefined?`[data-row="${d.row}"][data-col="${d.col}"]`:''}`);if(!el)return;el.focus();const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,pos=0,start,end;while(n=w.nextNode()){if(n.parentElement.closest('del'))continue;if(!start&&pos+n.length>=d.start)start=[n,d.start-pos];if(pos+n.length>=d.start+d.quote.length){end=[n,d.start+d.quote.length-pos];break}pos+=n.length}if(start&&end){const r=document.createRange();r.setStart(...start);r.setEnd(...end);getSelection().removeAllRanges();getSelection().addRange(r)}}
-async function applyTextStyle(patch){const d=curSel()||formatSelection;if(!d)return toast('先选中要设置格式的文字');const el=focusedBlk();if(el)await flush(el);getSelection().removeAllRanges();editing=null;await api('/api/format',{id:d.blockId,row:d.row,col:d.col,start:d.start,end:d.start+d.quote.length,style:patch});V=await api('/api/state');render();restoreSelection(d);formatSelection=d;updateFormatButtons()}
-function selectionHasStyle(key,value){
- const d=curSel()||formatSelection,b=V?.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows?.[d.row]?.[d.col]:b;
+function restoreSelection(d){const el=document.querySelector(`.blk[data-id="${d.blockId}"]${d.row!==undefined?`[data-row="${d.row}"][data-col="${d.col}"]`:''}`);if(!el)return;el.focus({preventScroll:true});const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,pos=0,start,end;while(n=w.nextNode()){if(n.parentElement.closest('del'))continue;if(!start&&pos+n.length>=d.start)start=[n,d.start-pos];if(pos+n.length>=d.start+d.quote.length){end=[n,d.start+d.quote.length-pos];break}pos+=n.length}if(start&&end){const r=document.createRange();r.setStart(...start);r.setEnd(...end);getSelection().removeAllRanges();getSelection().addRange(r)}}
+function applyTextStyle(patch){
+ const d=curSel()||formatSelection;if(!d)return toast('先选中要设置格式的文字');formatSelection=d;
+ // Serialize rapid clicks so each toggle uses the preceding saved result.
+ formatWork=formatWork.then(async()=>{
+  const doc=$('#doc'),top=doc.scrollTop,left=doc.scrollLeft;formatting=true;
+  try{
+   const el=focusedBlk();if(el)await flush(el);
+   const style=typeof patch==='function'?patch(d):patch;
+   await api('/api/format',{id:d.blockId,row:d.row,col:d.col,start:d.start,end:d.start+d.quote.length,style});
+   V=await api('/api/state');getSelection().removeAllRanges();editing=null;formatting=false;
+   render();restoreSelection(d);formatSelection=d;updateFormatButtons();
+  }finally{formatting=false;doc.scrollTop=top;doc.scrollLeft=left}
+ }).catch(e=>toast('格式保存失败：'+e.message));
+ return formatWork;
+}
+function selectionHasStyle(key,value,d=curSel()||formatSelection){
+ const b=V?.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows?.[d.row]?.[d.col]:b;
  if(!d?.quote||!t)return false;
  const end=d.start+d.quote.length,points=[d.start,...(t.formats||[]).flatMap(f=>[f.start,f.end]).filter(p=>p>d.start&&p<end)];
- return points.every(p=>{const style=t.formats?.find(f=>f.start<=p&&f.end>p)?.style||{};return style[key]===value});
+ return points.every(p=>{const style=t.formats?.find(f=>f.start<=p&&f.end>p)?.style||{},actual=style[key];return typeof actual==='string'&&typeof value==='string'?actual.toLowerCase()===value.toLowerCase():actual===value});
 }
 function updateFormatButtons(){
  document.querySelectorAll('[data-format]').forEach(e=>{const on=selectionHasStyle(e.dataset.format,true);e.classList.toggle('on',on);e.setAttribute('aria-pressed',String(on))});
  $('#highlightBtn').setAttribute('aria-pressed',String(selectionHasStyle('highlight',$('#highlightColor').value)));
+ $('#textColorBtn').setAttribute('aria-pressed',String(selectionHasStyle('color',$('#textColor').value)));
 }
 
-$('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key)applyTextStyle({[key]:!selectionHasStyle(key,true)})});
+$('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key)applyTextStyle(d=>({[key]:!selectionHasStyle(key,true,d)}))});
 $('#selectionFont').onchange=e=>{if(e.target.value)applyTextStyle({font:e.target.value,eastAsia:e.target.value})};
 $('#selectionSize').onchange=e=>{if(e.target.value)applyTextStyle({size:+e.target.value})};
-$('#highlightBtn').onclick=()=>applyTextStyle({highlight:selectionHasStyle('highlight',$('#highlightColor').value)?'transparent':$('#highlightColor').value});
-$('#textColorBtn').onclick=()=>applyTextStyle({color:$('#textColor').value});
+$('#highlightBtn').onclick=()=>{const color=$('#highlightColor').value;applyTextStyle(d=>({highlight:selectionHasStyle('highlight',color,d)?'transparent':color}))};
+$('#textColorBtn').onclick=()=>{const color=$('#textColor').value;applyTextStyle(d=>({color:selectionHasStyle('color',color,d)?'auto':color}))};
 $('#highlightColor').onchange=e=>{$('#highlightSwatch').style.backgroundColor=e.target.value;applyTextStyle({highlight:e.target.value})};
 $('#textColor').onchange=e=>{$('#textSwatch').style.backgroundColor=e.target.value;applyTextStyle({color:e.target.value})};
 async function insertAfter(){const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');return live.some(b=>b.id===lastBlock)?lastBlock:live.at(-1)?.id||null}

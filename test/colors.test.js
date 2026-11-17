@@ -27,6 +27,12 @@ test('color swatches apply directly and reuse chosen colors across Word modes', 
    await page.goto(url);await page.locator('.blk').first().waitFor();if(!revisions)await page.locator('#rev').click();
    await page.evaluate(()=>{window.pickerClicks=0;document.querySelectorAll('input[type=color]').forEach(e=>e.addEventListener('click',()=>window.pickerClicks++))});
    await select('Alpha');await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#b42318');
+   assert.equal(await page.locator('#textColorBtn').getAttribute('aria-pressed'),'true');
+   await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','auto');
+   assert.equal(await page.locator('#textColorBtn').getAttribute('aria-pressed'),'false');
+   // Imported Word colors use uppercase hex; they must toggle off on the first click too.
+   await select('colored');await change(()=>page.locator('#textSwatch').click());await expectColor('colored','color','auto');
+   await change(()=>page.locator('#highlightSwatch').click());await expectColor('colored','highlight','transparent');
    await select('Alpha');await change(()=>page.locator('#highlightSwatch').click());await expectColor('Alpha','highlight','#fff176');
    assert.equal(await page.locator('#highlightBtn').getAttribute('aria-pressed'),'true');
    await change(()=>page.locator('#highlightSwatch').click());await expectColor('Alpha','highlight','transparent');

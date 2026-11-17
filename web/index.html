@@ -72,6 +72,7 @@ mark:focus-visible{outline:2px solid var(--acc)}
 #commentBtn{max-width:150px}#commentCount{font-size:12px;color:var(--mute)}
 @media(max-width:800px){#page{padding:30px 32px 30px 46px}#doc{padding:12px 12px 130px}.row .tag{left:-40px;width:32px}.comment-pin{right:-28px}}
 @media(max-width:520px){header{flex-wrap:wrap;gap:4px;padding:8px}header h1{max-width:45vw}#page{padding:24px 28px 24px 34px}.row .tag{left:-32px;width:25px}#doc{padding:8px 4px 120px}}
+#formatbar .color-tool{display:inline-flex;align-items:stretch;flex-shrink:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}#formatbar .color-tool button{border:0;border-radius:0}#formatbar .color-swatch{display:inline-block;width:18px;height:18px;border:1px solid #0003;border-radius:2px}#formatbar .color-picker{position:relative;display:flex;justify-content:center;width:22px;border-left:1px solid var(--line);cursor:pointer}#formatbar .color-picker:hover{background:#f3f2ee}#formatbar .color-picker input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}#formatbar .color-picker:focus-within{outline:2px solid var(--blue);outline-offset:-2px}
 </style></head><body>
 <svg style="display:none"><symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M14 6l4 4"/></symbol>
 <symbol id="i-sug" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 16h2.5L16 10.5 13.5 8 8 13.5V16z"/></symbol>
@@ -103,7 +104,8 @@ mark:focus-visible{outline:2px solid var(--acc)}
  <select id="selectionFont" aria-label="选中文字字体"><option value="">字体</option><option>Arial</option><option>Times New Roman</option><option>Calibri</option><option>华文中宋</option><option>宋体</option><option>微软雅黑</option></select>
  <select id="selectionSize" aria-label="字号"><option value="">字号</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>
  <button data-format="bold" title="加粗" aria-label="加粗"><b>B</b></button><button data-format="italic" title="斜体" aria-label="斜体"><i>I</i></button><button data-format="underline" title="下划线" aria-label="下划线"><u>U</u></button>
- <button id="highlightBtn" title="高亮" aria-label="高亮">▰</button><label title="高亮颜色">高亮<input type="color" id="highlightColor" value="#fff176" aria-label="高亮颜色"></label><label title="文字颜色">文字<input type="color" id="textColor" value="#b42318" aria-label="文字颜色"></label>
+ <div class="color-tool"><button id="highlightBtn" title="应用当前高亮颜色" aria-label="应用当前高亮颜色">高亮<span id="highlightSwatch" class="color-swatch" style="background:#fff176"></span></button><label class="color-picker" title="选择高亮颜色"><span aria-hidden="true">▾</span><input type="color" id="highlightColor" value="#fff176" aria-label="选择高亮颜色"></label></div>
+ <div class="color-tool"><button id="textColorBtn" title="应用当前文字颜色" aria-label="应用当前文字颜色">文字<span id="textSwatch" class="color-swatch" style="background:#b42318"></span></button><label class="color-picker" title="选择文字颜色"><span aria-hidden="true">▾</span><input type="color" id="textColor" value="#b42318" aria-label="选择文字颜色"></label></div>
  <button id="imageBtn" title="插入图片" aria-label="插入图片">图片</button><button id="tableBtn" title="插入表格" aria-label="插入表格">表格</button>
  <input type="file" id="imageFile" accept="image/png,image/jpeg,image/gif,image/webp" hidden>
 </div>
@@ -239,7 +241,7 @@ function renderControls(){
   const count=V.comments.filter(c=>c.status!=='resolved').length;$('#commentCount').textContent=count?`(${count})`:'';
   const [mt,mi]=MODES[V.mode||'suggest'];$('#modeTxt').textContent=mt;$('#modeIc').setAttribute('href',mi);$('#modeBtn').className=V.mode;
   document.querySelectorAll('#modeMenu .mi').forEach(x=>x.classList.toggle('sel',x.dataset.mode===V.mode));
-  const ro=V.mode==='view';['ttBtn','liBtn','addBtn','todoBtn','fontBtn','selectionFont','selectionSize','highlightBtn','highlightColor','textColor','imageBtn','tableBtn'].forEach(id=>$('#'+id).disabled=ro);document.querySelectorAll('[data-format]').forEach(e=>e.disabled=ro);
+  const ro=V.mode==='view';['ttBtn','liBtn','addBtn','todoBtn','fontBtn','selectionFont','selectionSize','highlightBtn','textColorBtn','highlightColor','textColor','imageBtn','tableBtn'].forEach(id=>$('#'+id).disabled=ro);document.querySelectorAll('[data-format]').forEach(e=>e.disabled=ro);
 }
 function render(){if(!V)return;renderDoc();renderControls();renderPopup()}
 const es=new EventSource('/api/events');
@@ -332,7 +334,10 @@ async function applyTextStyle(patch){const d=curSel()||formatSelection;if(!d)ret
 $('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key){const d=curSel()||formatSelection,b=V.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows[d.row][d.col]:b;const current=t?.formats?.find(f=>f.start<=d.start&&f.end>d.start)?.style||{};applyTextStyle({[key]:!current[key]})}});
 $('#selectionFont').onchange=e=>{if(e.target.value)applyTextStyle({font:e.target.value,eastAsia:e.target.value})};
 $('#selectionSize').onchange=e=>{if(e.target.value)applyTextStyle({size:+e.target.value})};
-$('#highlightBtn').onclick=()=>applyTextStyle({highlight:$('#highlightColor').value});$('#highlightColor').onchange=e=>applyTextStyle({highlight:e.target.value});$('#textColor').onchange=e=>applyTextStyle({color:e.target.value});
+$('#highlightBtn').onclick=()=>applyTextStyle({highlight:$('#highlightColor').value});
+$('#textColorBtn').onclick=()=>applyTextStyle({color:$('#textColor').value});
+$('#highlightColor').onchange=e=>{$('#highlightSwatch').style.backgroundColor=e.target.value;applyTextStyle({highlight:e.target.value})};
+$('#textColor').onchange=e=>{$('#textSwatch').style.backgroundColor=e.target.value;applyTextStyle({color:e.target.value})};
 async function insertAfter(){const el=focusedBlk();if(el){await flush(el);el.blur()}const live=V.blocks.filter(b=>b.state!=='deleted');return live.some(b=>b.id===lastBlock)?lastBlock:live.at(-1)?.id||null}
 $('#tableBtn').onclick=()=>$('#tableDialog').showModal();$('#insertTable').onclick=async()=>{const afterId=await insertAfter();await api('/api/table/insert',{afterId,rows:+$('#tableRows').value,cols:+$('#tableCols').value});$('#tableDialog').close();toast('表格已插入，可直接输入单元格')};
 $('#imageBtn').onclick=()=>$('#imageFile').click();$('#imageFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=data});const width=Math.min(600,img.naturalWidth),height=img.naturalHeight*width/img.naturalWidth;await api('/api/image/insert',{afterId:await insertAfter(),data,width,height,alt:f.name});e.target.value='';toast('图片已插入')};

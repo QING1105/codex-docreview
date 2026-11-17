@@ -6,6 +6,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 FILES = [
+    "test/colors.test.js",
     "server/instances.js", "test/concurrent.test.js",
     "assets/doc-review-logo.png",
     ".codex/INSTALL.md", "skills/doc-review/scripts/bootstrap.ps1",

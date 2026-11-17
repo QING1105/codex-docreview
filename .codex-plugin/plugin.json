@@ -1,6 +1,6 @@
 {
   "name": "docreview",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "在本地网页里对文档高亮、批注，批注排队交给 Codex 处理，并导出带修订和批注的 Word。",
   "skills": "./skills/",
   "mcpServers": "./mcp.json",

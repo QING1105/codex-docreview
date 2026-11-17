@@ -41,9 +41,9 @@ test('format toggles preserve long-document reading position and selection',{ski
    assert.equal(await page.evaluate(()=>getSelection().toString()),word);
    assert.ok(Math.abs((await page.locator('#doc').evaluate(el=>el.scrollTop))-initial.top)<=1);
    const state=await api('/api/state'),owner=state.blocks.find(b=>b.text.includes(word)),block=word==='CellTarget'?owner.rows.flat().find(c=>c.text.includes(word)):owner,at=block.text.indexOf(word);
-   const style=block.formats.find(f=>f.start<=at&&f.end>at).style;assert.equal(style.highlight,'transparent');assert.equal(style.color,'auto');
+   const style=block.formats.find(f=>f.start<=at&&f.end>at).style;assert.equal(style.highlight,'transparent');assert.equal(style.color,'#000000');
    const exported=Buffer.from(await(await fetch(url+'/api/export-clean.docx')).arrayBuffer()),imported=importDocx(exported).find(b=>b.text.includes(word)),loaded=word==='CellTarget'?imported.rows.flat().find(c=>c.text.includes(word)):imported;
-   assert.equal(loaded.formats.find(f=>f.start<=at&&f.end>at).style.color,'auto');
+   assert.equal(loaded.formats.find(f=>f.start<=at&&f.end>at).style.color,'#000000');
    }
   }
   assert.deepEqual(errors,[]);

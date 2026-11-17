@@ -28,10 +28,10 @@ test('color swatches apply directly and reuse chosen colors across Word modes', 
    await page.evaluate(()=>{window.pickerClicks=0;document.querySelectorAll('input[type=color]').forEach(e=>e.addEventListener('click',()=>window.pickerClicks++))});
    await select('Alpha');await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#b42318');
    assert.equal(await page.locator('#textColorBtn').getAttribute('aria-pressed'),'true');
-   await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','auto');
+   await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#000000');
    assert.equal(await page.locator('#textColorBtn').getAttribute('aria-pressed'),'false');
    // Imported Word colors use uppercase hex; they must toggle off on the first click too.
-   await select('colored');await change(()=>page.locator('#textSwatch').click());await expectColor('colored','color','auto');
+   await select('colored');await change(()=>page.locator('#textSwatch').click());await expectColor('colored','color','#000000');
    await change(()=>page.locator('#highlightSwatch').click());await expectColor('colored','highlight','transparent');
    await select('Alpha');await change(()=>page.locator('#highlightSwatch').click());await expectColor('Alpha','highlight','#fff176');
    assert.equal(await page.locator('#highlightBtn').getAttribute('aria-pressed'),'true');
@@ -59,9 +59,30 @@ test('color swatches apply directly and reuse chosen colors across Word modes', 
     await expectColor('Alpha',key,color);await select('Convert');await change(()=>page.locator('#'+swatch).click());await expectColor('Convert',key,color);
    }
    await select('Alpha');await change(()=>page.locator('#highlightSwatch').click());await expectColor('Alpha','highlight','transparent');
+   // Changing colors repeatedly must still clear to actual black, even after another selection changes the saved swatch.
+   await select('Alpha');
+   for(const color of ['#ff0000','#0000ff','#00ff00']){
+    await page.locator('#textColor').dispatchEvent('pointerdown');
+    await change(()=>page.locator('#textColor').evaluate((el,color)=>{el.value=color;el.dispatchEvent(new Event('change',{bubbles:true}))},color));
+    await expectColor('Alpha','color',color);
+   }
+   await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#000000');
+   assert.equal(await page.evaluate(()=>getComputedStyle(getSelection().anchorNode.parentElement).color),'rgb(0, 0, 0)');
+   await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#00ff00');
+   await select('Convert');await page.locator('#textColor').dispatchEvent('pointerdown');
+   await change(()=>page.locator('#textColor').evaluate(el=>{el.value='#771199';el.dispatchEvent(new Event('change',{bubbles:true}))}));
+   await select('Alpha');await change(()=>page.locator('#textSwatch').click());await expectColor('Alpha','color','#000000');
+   assert.equal(await page.locator('#textColorBtn').getAttribute('aria-pressed'),'false');
+   // Color changes and cancellation can arrive before the preceding saves finish.
+   await page.locator('#textColor').dispatchEvent('pointerdown');
+   await page.locator('#textColor').evaluate(el=>{for(const color of ['#ee0000','#0000ee','#00aa00']){el.value=color;el.dispatchEvent(new Event('change',{bubbles:true}))}});
+   await page.locator('#textSwatch').click();await page.evaluate(()=>formatWork);
+   await expectColor('Alpha','color','#000000');
+   assert.equal(await page.evaluate(()=>getComputedStyle(getSelection().anchorNode.parentElement).color),'rgb(0, 0, 0)');
    const response=await fetch(url+'/api/export-clean.docx');assert.ok(response.ok);
    const imported=require('../server/docx').importDocx(Buffer.from(await response.arrayBuffer()));
    const alpha=imported.find(b=>b.text.includes('Alpha')),at=alpha.text.indexOf('Alpha');
+   assert.ok(alpha.formats.filter(f=>f.start<at+5&&f.end>at).every(f=>f.style.color==='#000000'));
    for(const key of ['bold','italic','underline','strike'])assert.ok(alpha.formats.filter(f=>f.start<at+5&&f.end>at).every(f=>!f.style[key]));
    assert.ok(alpha.formats.filter(f=>f.start<at+5&&f.end>at).every(f=>!f.style.highlight||f.style.highlight==='transparent'));
   }

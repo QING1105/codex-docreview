@@ -38,7 +38,7 @@ mark{background:var(--hl);border-radius:2px;cursor:pointer;padding:1px 0;color:i
 ins{color:inherit;background:#deeee8;text-decoration:underline;text-decoration-color:#477469;text-underline-offset:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}del{color:inherit;background:#f8dfdd;text-decoration:line-through;text-decoration-color:#8f4b46;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 #fab{position:fixed;display:none;z-index:9;background:#1f2328;color:#fff;border:0;border-radius:8px;padding:5px 12px;box-shadow:0 2px 8px #0003}
 /* 底部工具栏 */
-#formatbar{position:absolute;left:50%;bottom:77px;transform:translateX(-50%);display:flex;align-items:center;gap:3px;padding:6px;background:white;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:20;max-width:calc(100% - 20px);overflow-x:auto;white-space:nowrap}#formatbar button{padding:5px 9px}#formatbar select{font:inherit;max-width:135px;padding:5px;border:1px solid var(--line);border-radius:6px}#formatbar label{font:11px sans-serif;display:flex;align-items:center;gap:2px}#formatbar input[type=color]{width:25px;height:27px;border:0;padding:0;background:none}.doc-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8px 0}.doc-table td{border:1px solid #d9d9d9;padding:8px;vertical-align:top}.table-tools{display:flex;align-items:center;justify-content:space-between;font:12px sans-serif;color:var(--mute)}figure{margin:12px 0}figure img{display:block}figcaption{margin-top:5px}.row.gone figure,.row.gone table{opacity:.5}#askBox{bottom:132px!important}
+#formatbar{position:absolute;left:50%;bottom:77px;transform:translateX(-50%);display:flex;align-items:center;gap:3px;padding:6px;background:white;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:20;max-width:calc(100% - 20px);overflow-x:auto;white-space:nowrap}#formatbar button{padding:5px 9px}#formatbar button[aria-pressed="true"]{background:#e6edf6;box-shadow:inset 0 0 0 1px #6686ad}#formatbar select{font:inherit;max-width:135px;padding:5px;border:1px solid var(--line);border-radius:6px}#formatbar label{font:11px sans-serif;display:flex;align-items:center;gap:2px}#formatbar input[type=color]{width:25px;height:27px;border:0;padding:0;background:none}.doc-table{width:100%;border-collapse:collapse;table-layout:fixed;margin:8px 0}.doc-table td{border:1px solid #d9d9d9;padding:8px;vertical-align:top}.table-tools{display:flex;align-items:center;justify-content:space-between;font:12px sans-serif;color:var(--mute)}figure{margin:12px 0}figure img{display:block}figcaption{margin-top:5px}.row.gone figure,.row.gone table{opacity:.5}#askBox{bottom:132px!important}
 #tb{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:6px;z-index:20}
 #tb>.dd>button,#tb>button{border:0;background:none;padding:7px 9px;border-radius:10px}#tb>.dd>button:hover,#tb>button:hover{background:#f1f0ec}
 #tb .vs{width:1px;height:20px;background:var(--line);margin:0 4px}#tb button.ask{background:#f1f0ec;padding:7px 14px;margin-left:4px}#tb button.ask:hover{background:#e7e5df}
@@ -103,7 +103,7 @@ mark:focus-visible{outline:2px solid var(--acc)}
  <div id="formatbar" role="toolbar" aria-label="文字格式工具">
  <select id="selectionFont" aria-label="选中文字字体"><option value="">字体</option><option>Arial</option><option>Times New Roman</option><option>Calibri</option><option>华文中宋</option><option>宋体</option><option>微软雅黑</option></select>
  <select id="selectionSize" aria-label="字号"><option value="">字号</option><option>10</option><option>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>24</option><option>32</option></select>
- <button data-format="bold" title="加粗" aria-label="加粗"><b>B</b></button><button data-format="italic" title="斜体" aria-label="斜体"><i>I</i></button><button data-format="underline" title="下划线" aria-label="下划线"><u>U</u></button>
+ <button data-format="bold" title="加粗" aria-label="加粗"><b>B</b></button><button data-format="italic" title="斜体" aria-label="斜体"><i>I</i></button><button data-format="underline" title="下划线" aria-label="下划线"><u>U</u></button><button data-format="strike" title="删除线" aria-label="删除线"><s>S</s></button>
  <div class="color-tool"><button id="highlightBtn" title="应用当前高亮颜色" aria-label="应用当前高亮颜色">高亮<span id="highlightSwatch" class="color-swatch" style="background:#fff176"></span></button><label class="color-picker" title="选择高亮颜色"><span aria-hidden="true">▾</span><input type="color" id="highlightColor" value="#fff176" aria-label="选择高亮颜色"></label></div>
  <div class="color-tool"><button id="textColorBtn" title="应用当前文字颜色" aria-label="应用当前文字颜色">文字<span id="textSwatch" class="color-swatch" style="background:#b42318"></span></button><label class="color-picker" title="选择文字颜色"><span aria-hidden="true">▾</span><input type="color" id="textColor" value="#b42318" aria-label="选择文字颜色"></label></div>
  <button id="imageBtn" title="插入图片" aria-label="插入图片">图片</button><button id="tableBtn" title="插入表格" aria-label="插入表格">表格</button>
@@ -233,7 +233,7 @@ function renderPopup(){
     ${c.status!=='running'?'<button class="sm" data-a="del">删除</button>':''}</div></div>`).join('')||'<div class="hint">选中文档里的文字，即可添加批注。</div>';
   const c=V.comments.find(c=>c.id===active),busy=c&&['running','queued'].includes(c.status);
   const pending=V.queue.find(q=>q.commentId===active&&q.status==='queued');
-  $('#replySend').disabled=!!busy;$('#replyHint').textContent=c?.status==='queued'?(pending?.deliveryError?'正在恢复与 Codex 的连接，恢复后自动处理':pending?.delivered?'已送入当前聊天，正在排队处理':'正在发送到当前聊天…'):busy?'正在处理这条批注；回复内容可先写在这里':'回复会交给当前 Codex 聊天处理';
+  $('#replySend').disabled=!!busy;$('#replyHint').textContent=c?.status==='queued'?(pending?.deliveryError?'发送重试中：'+pending.deliveryError:pending?.delivered?'已送入当前聊天，等待 Codex 领取':'正在发送到当前聊天…'):busy?'正在处理这条批注；回复内容可先写在这里':'回复会交给当前 Codex 聊天处理';
   positionPopup();
 }
 function renderControls(){
@@ -291,7 +291,7 @@ $('#page').addEventListener('keydown',e=>{if(e.target.matches('mark')&&(e.key===
 function curSel(){const s=getSelection();if(!s.rangeCount||s.isCollapsed)return null;const r=s.getRangeAt(0),el=blkOf(r.startContainer);if(!el||!$('#page').contains(el))return null;
   const rr=r.cloneRange();if(blkOf(r.endContainer)!==el)rr.setEnd(el,el.childNodes.length);const pre=document.createRange();pre.selectNodeContents(el);pre.setEnd(rr.startContainer,rr.startOffset);
   const quote=selectionText(rr)||rr.toString();if(!quote.trim())return null;return{blockId:el.dataset.id,...(el.dataset.row!==undefined?{row:+el.dataset.row,col:+el.dataset.col}:{}),quote,start:selectionText(pre).length,rect:rr.getBoundingClientRect()}}
-function updateSelection(){const f=$('#fab');sel=curSel();if(sel){const b=V.blocks.find(b=>b.id===sel.blockId),t=sel.row!==undefined?b?.rows[sel.row][sel.col]:b,style=t?.formats?.find(f=>f.start<=sel.start&&f.end>sel.start)?.style||{};document.querySelectorAll('[data-format]').forEach(e=>{e.classList.toggle('on',!!style[e.dataset.format]);e.setAttribute('aria-pressed',String(!!style[e.dataset.format]))})}if(!sel||selecting){f.style.display='none';return}
+function updateSelection(){const f=$('#fab');sel=curSel();updateFormatButtons();if(!sel||selecting){f.style.display='none';return}
   f.style.display='block';f.style.left=Math.min(innerWidth-110,sel.rect.right+6)+'px';f.style.top=Math.max(50,sel.rect.top-36)+'px'}
 document.addEventListener('selectionchange',updateSelection);
 $('#page').addEventListener('pointerdown',()=>{selecting=true;$('#fab').style.display='none'});
@@ -330,11 +330,22 @@ $('#cmBtn').onclick=()=>{const s=curSel()||sel;if(!s)return toast('先在文档�
 let formatSelection=null;
 $('#formatbar').addEventListener('pointerdown',e=>{const selected=curSel();if(selected)formatSelection=selected;if(e.target.closest('button'))e.preventDefault()});
 function restoreSelection(d){const el=document.querySelector(`.blk[data-id="${d.blockId}"]${d.row!==undefined?`[data-row="${d.row}"][data-col="${d.col}"]`:''}`);if(!el)return;el.focus();const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,pos=0,start,end;while(n=w.nextNode()){if(n.parentElement.closest('del'))continue;if(!start&&pos+n.length>=d.start)start=[n,d.start-pos];if(pos+n.length>=d.start+d.quote.length){end=[n,d.start+d.quote.length-pos];break}pos+=n.length}if(start&&end){const r=document.createRange();r.setStart(...start);r.setEnd(...end);getSelection().removeAllRanges();getSelection().addRange(r)}}
-async function applyTextStyle(patch){const d=curSel()||formatSelection;if(!d)return toast('先选中要设置格式的文字');const el=focusedBlk();if(el)await flush(el);getSelection().removeAllRanges();editing=null;await api('/api/format',{id:d.blockId,row:d.row,col:d.col,start:d.start,end:d.start+d.quote.length,style:patch});V=await api('/api/state');render();restoreSelection(d);formatSelection=d}
-$('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key){const d=curSel()||formatSelection,b=V.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows[d.row][d.col]:b;const current=t?.formats?.find(f=>f.start<=d.start&&f.end>d.start)?.style||{};applyTextStyle({[key]:!current[key]})}});
+async function applyTextStyle(patch){const d=curSel()||formatSelection;if(!d)return toast('先选中要设置格式的文字');const el=focusedBlk();if(el)await flush(el);getSelection().removeAllRanges();editing=null;await api('/api/format',{id:d.blockId,row:d.row,col:d.col,start:d.start,end:d.start+d.quote.length,style:patch});V=await api('/api/state');render();restoreSelection(d);formatSelection=d;updateFormatButtons()}
+function selectionHasStyle(key,value){
+ const d=curSel()||formatSelection,b=V?.blocks.find(b=>b.id===d?.blockId),t=d?.row!==undefined?b?.rows?.[d.row]?.[d.col]:b;
+ if(!d?.quote||!t)return false;
+ const end=d.start+d.quote.length,points=[d.start,...(t.formats||[]).flatMap(f=>[f.start,f.end]).filter(p=>p>d.start&&p<end)];
+ return points.every(p=>{const style=t.formats?.find(f=>f.start<=p&&f.end>p)?.style||{};return style[key]===value});
+}
+function updateFormatButtons(){
+ document.querySelectorAll('[data-format]').forEach(e=>{const on=selectionHasStyle(e.dataset.format,true);e.classList.toggle('on',on);e.setAttribute('aria-pressed',String(on))});
+ $('#highlightBtn').setAttribute('aria-pressed',String(selectionHasStyle('highlight',$('#highlightColor').value)));
+}
+
+$('#formatbar').addEventListener('click',e=>{const key=e.target.closest('[data-format]')?.dataset.format;if(key)applyTextStyle({[key]:!selectionHasStyle(key,true)})});
 $('#selectionFont').onchange=e=>{if(e.target.value)applyTextStyle({font:e.target.value,eastAsia:e.target.value})};
 $('#selectionSize').onchange=e=>{if(e.target.value)applyTextStyle({size:+e.target.value})};
-$('#highlightBtn').onclick=()=>applyTextStyle({highlight:$('#highlightColor').value});
+$('#highlightBtn').onclick=()=>applyTextStyle({highlight:selectionHasStyle('highlight',$('#highlightColor').value)?'transparent':$('#highlightColor').value});
 $('#textColorBtn').onclick=()=>applyTextStyle({color:$('#textColor').value});
 $('#highlightColor').onchange=e=>{$('#highlightSwatch').style.backgroundColor=e.target.value;applyTextStyle({highlight:e.target.value})};
 $('#textColor').onchange=e=>{$('#textSwatch').style.backgroundColor=e.target.value;applyTextStyle({color:e.target.value})};

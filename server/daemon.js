@@ -8,6 +8,7 @@ const clone=x=>structuredClone(x);
 const content=b=>!!(b.text?.trim()||b.images?.length||b.rows?.length);
 const sameContent=(a,b)=>a&&b&&['text','formats','images','rows','type','checked'].every(k=>JSON.stringify(a[k])===JSON.stringify(b[k]));
 const { notifyThread } = require('./host-bridge');
+const { randomUUID } = require('crypto');
 let PORT = +(process.env.DOCREVIEW_PORT || 4517);
 const DATA = process.env.DOCREVIEW_DATA || path.join(os.homedir(), '.codex-docreview');
 fs.mkdirSync(DATA, { recursive: true });
@@ -15,7 +16,11 @@ const SF = path.join(DATA, 'state.json'), OF = path.join(DATA, 'original.docx');
 
 let S = { mode: 'suggest', doc: null, blocks: [], baseline: [], comments: [], queue: [], seq: 0, paused: false, user: process.env.DOCREVIEW_USER || os.userInfo().username || 'Reviewer' };
 try { S = Object.assign(S, JSON.parse(fs.readFileSync(SF, 'utf8'))); } catch { }
-for (const q of S.queue) if (q.status === 'running') q.status = 'queued';
+for (const q of S.queue) if (['running','queued'].includes(q.status)) {
+  q.status = 'queued'; q.delivered = false; delete q.deliveryError;
+  q.deliveryId ||= randomUUID();
+  q.deliveryGeneration = (q.deliveryGeneration || 0) + 1;
+}
 for (const c of S.comments) if (c.status === 'running') c.status = 'queued';
 if (process.env.DOCREVIEW_INSTANCE_SESSION) S.sessionId = process.env.DOCREVIEW_INSTANCE_SESSION;
 const agent = { status: 'idle', mode: 'current-session', threadId: S.sessionId || null, log: [], err: null };
@@ -74,10 +79,10 @@ async function dispatchPending() {
   const pending = S.queue.filter(q => q.status === 'queued' && !q.delivered);
   if (!pending.length) return;
   dispatchBusy = true;
-  const ids = pending.map(q=>q.id), sessionId=S.sessionId;
+  const sessionId=S.sessionId;
   const texts = pending.map(q=>q.kind==='comment'?`批注 ${q.commentId}：${cm(q.commentId).text}`:q.text).join('\n');
   try {
-    await notifyThread({ ...dispatchContext, threadId:sessionId, callId:'docreview-'+sessionId+'-'+ids.join('-'),
+    await notifyThread({ ...dispatchContext, threadId:sessionId, callId:'docreview-'+sessionId+'-'+pending.map(q=>q.deliveryId+'g'+(q.deliveryGeneration||0)).join('-'),
       prompt:`【Doc Review 网页提交】${texts}\n请在这条聊天使用 $doc-review 立即领取并处理批注队列，逐条写回 comment_reply 并完成任务。回复显示在网页批注弹窗中。` });
     if(S.sessionId===sessionId)for(const q of pending){q.delivered=true;delete q.deliveryError;}
     agent.err=null;
@@ -127,7 +132,7 @@ const direct = (author, wasClean) => S.mode === 'edit' && author !== 'Codex' && 
 const noView = author => { if (S.mode === 'view' && author !== 'Codex') throw new Error('当前是查看模式，只能批注'); };
 const cm = id => { const c = S.comments.find(c => c.id === id); if (!c) throw new Error('没有这条批注：' + id); return c; };
 function addComment({ blockId, quote, start, text, send }) { if (!blockId || !text) throw new Error('缺少段落或批注内容'); const c = { id: nid('c'), blockId, quote: quote || '', start: start || 0, text, author: S.user, date: now(), status: 'draft', replies: [] }; S.comments.push(c); if (send) enqueueComment(c); else changed(); return c; }
-function enqueueComment(c) { if (S.queue.some(q => q.commentId === c.id && (q.status === 'queued' || q.status === 'running'))) return; c.status = 'queued'; c.answered = false; S.queue.push({ id: nid('q'), kind: 'comment', commentId: c.id, status: 'queued' }); changed(); }
+function enqueueComment(c) { if (S.queue.some(q => q.commentId === c.id && (q.status === 'queued' || q.status === 'running'))) return; c.status = 'queued'; c.answered = false; S.queue.push({ id: nid('q'), deliveryId:randomUUID(), kind: 'comment', commentId: c.id, status: 'queued' }); changed(); }
 function reply(id, text, author, resolve) { const c = cm(id); c.replies.push({ author: author || 'Codex', text, date: now() }); if (author === 'Codex' || !author) { c.answered = true; if (c.status !== 'resolved') c.status = 'answered'; } if (resolve) c.status = 'resolved'; changed(); return c; }
 function readForAgent() {
   const L = [`文档《${S.doc ? S.doc.title : '(未打开)'}》 共 ${S.blocks.length} 段。格式：[段落ID|类型] 内容`];
@@ -141,11 +146,18 @@ function readForAgent() {
 function requireSession(id) {
   if (!id || id !== S.sessionId) throw new Error('请在发起审阅的聊天中调用 doc_review_start，再继续处理。');
 }
+function refreshBridge(bridge) {
+  if (!bridge?.pipe) return;
+  const renewed = dispatchContext.pipe !== bridge.pipe || dispatchContext.hostId !== bridge.host_id;
+  dispatchContext = { pipe:bridge.pipe, hostId:bridge.host_id };
+  if (renewed && dispatchTimer) { clearTimeout(dispatchTimer); dispatchTimer = null; }
+  scheduleDispatch();
+}
 function bindSession(id, bridge) {
   if(process.env.DOCREVIEW_INSTANCE_SESSION && id!==process.env.DOCREVIEW_INSTANCE_SESSION)throw new Error('这个审阅页属于另一条聊天，请在当前聊天调用 doc_review_start 获取独立页面。');
   if (typeof id !== 'string' || !id.trim()) throw new Error('需要当前 Codex 聊天 ID');
   if (S.sessionId && S.sessionId !== id) throw new Error('文档已绑定另一条聊天；请在原聊天中释放审阅后再启动。');
-  if (bridge?.pipe) dispatchContext = { pipe:bridge.pipe, hostId:bridge.host_id };
+  refreshBridge(bridge);
   S.sessionId = id; agent.threadId = id; changed();
   return { session_id: id, url: `http://127.0.0.1:${PORT}/`, mode: 'current-session' };
 }
@@ -196,6 +208,7 @@ const routes = {
   'GET /api/ping': () => ({ ok: true, app: 'docreview', version: require('../.codex-plugin/plugin.json').version, mode: 'current-session', instance_key: process.env.DOCREVIEW_INSTANCE_KEY }),
   'GET /api/state': () => view(),
   'POST /api/session/bind': b => bindSession(b.session_id, b.host_bridge),
+  'POST /api/session/bridge': b => { requireSession(b.session_id); refreshBridge(b.host_bridge); return { ok:true }; },
   'POST /api/session/next': b => nextTask(b),
   'POST /api/session/finish': b => finishTask(b),
   'POST /api/session/release': b => { requireSession(b.session_id); if (S.queue.some(q => q.status === 'running')) throw new Error('请先完成当前批注'); S.sessionId = null; agent.threadId = null; changed(); return { ok: true }; },

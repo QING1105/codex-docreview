@@ -14,6 +14,12 @@ function call(method, p, data) {
 async function ensure() {
   session.getStore().port = await require('./instances').ensure(session.getStore().id);
 }
+async function refreshBridge() {
+  if (process.env.CODEX_APP_TOOLS_PIPE_PATH) await call('POST', '/api/session/bridge', {
+    session_id:session.getStore().id,
+    host_bridge:{pipe:process.env.CODEX_APP_TOOLS_PIPE_PATH,host_id:process.env.CODEX_APP_TOOLS_CALLER_HOST_ID}
+  });
+}
 const str = (d, req) => ({ type: 'string', description: d });
 const TOOLS = [
   { name: 'doc_open', description: '在批注页里打开一份文档（.docx / .md / .txt），返回网页地址。会清空上一份文档的批注。', inputSchema: { type: 'object', properties: { path: str('文档的绝对路径') }, required: ['path'] }, run: async a => { const r = await call('POST', '/api/open', { path: a.path }); return `已打开，共 ${r.blocks} 段。请用户在浏览器里打开 ${r.url} 进行批注。`; } },
@@ -49,7 +55,7 @@ readline.createInterface({ input: process.stdin }).on('line', async line => {
     if (m.method === 'tools/list') return out({ id: m.id, result: { tools: TOOLS.map(({ run, ...t }) => t) } });
     if (m.method === 'tools/call') {
       const t = TOOLS.find(t => t.name === m.params.name); if (!t) return out({ id: m.id, error: { code: -32602, message: '未知工具' } });
-      try { const a = m.params.arguments || {}; if (typeof a.session_id !== 'string' || !a.session_id.trim()) throw new Error('请提供当前 Codex 聊天 ID'); const result = await session.run({id:a.session_id}, async () => { await ensure(); return t.run(a); }); return out({ id: m.id, result: { content: [{ type: 'text', text: result }] } }); }
+      try { const a = m.params.arguments || {}; if (typeof a.session_id !== 'string' || !a.session_id.trim()) throw new Error('请提供当前 Codex 聊天 ID'); const result = await session.run({id:a.session_id}, async () => { await ensure(); if(t.name!=='doc_review_start')await refreshBridge(); return t.run(a); }); return out({ id: m.id, result: { content: [{ type: 'text', text: result }] } }); }
       catch (e) { return out({ id: m.id, result: { content: [{ type: 'text', text: '失败：' + e.message }], isError: true } }); }
     }
     out({ id: m.id, error: { code: -32601, message: 'method not found' } });

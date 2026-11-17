@@ -27,7 +27,7 @@ async function notifyThread({pipe,hostId,threadId,prompt,callId}) {
   if(!tool)throw new Error('当前 Codex 桌面未提供聊天消息接口');
   const result=await request(pipe,'tools/call',{
     namespace:tool.namespace,tool:tool.name,callerSource:'codex',threadId,hostId,
-    turnId:'docreview-submit',callId:callId||('docreview-'+randomUUID()),arguments:{threadId,prompt}
+    turnId:'docreview-submit',callId:callId||('docreview-'+randomUUID()),arguments:{threadId,prompt,...(hostId?{hostId}:{})}
   });
   if(!result.success)throw new Error(result.contentItems?.filter(c=>c.type==='inputText').map(c=>c.text).join('\n')||'发送到当前聊天失败');
   return result;

@@ -289,10 +289,23 @@ function exportInto(S, origBuf, opt) {
   return finishMedia(files,ctx);
 }
 function exportDocx(S, origBuf, opt) {
-  const buf = S.doc && S.doc.kind === 'docx' && origBuf ? exportInto(S, origBuf, opt) : exportNew(S, opt);
-  if (!S.doc?.fonts) return buf;
+  // Conversations stay in the review state; the Word artifact contains document content only.
+  const documentState = {...S, comments:[]};
+  const buf = S.doc && S.doc.kind === 'docx' && origBuf ? exportInto(documentState, origBuf, opt) : exportNew(documentState, opt);
+  const files = unzip(buf).filter(f=>!/(?:^|\/)(?:comments[^/]*|people)\.xml(?:\.rels)?$/i.test(f.name));
+  for(const f of files)if(/\.(?:xml|rels)$/.test(f.name)){
+    let xml=f.data.toString('utf8');
+    // Remove old embedded discussion parts and their references, including modern Word comment metadata.
+    xml=xml.replace(/<Relationship\b[^>]*\bType=["'][^"']*\/(?:comments[^/"']*|people)["'][^>]*(?:\/>|>[\s\S]*?<\/Relationship>)/gi,'');
+    xml=xml.replace(/<Override\b[^>]*\bPartName=["'][^"']*\/(?:comments[^/"']*|people)\.xml["'][^>]*(?:\/>|>[\s\S]*?<\/Override>)/gi,'');
+    if(/^word\//.test(f.name)){
+      xml=xml.replace(/<w:comment(?:RangeStart|RangeEnd|Reference)\b[^>]*(?:\/>|>[\s\S]*?<\/w:comment(?:RangeStart|RangeEnd|Reference)>)/g,'');
+      xml=xml.replace(/<w:[^>]+>/g,tag=>tag.replace(/\bw:author=(?:"[^"]*"|'[^']*')/g,'w:author="Language Editor"'));
+    }
+    f.data=Buffer.from(xml);
+  }
+  if (!S.doc?.fonts) return zip(files);
   const fonts = `<w:rFonts w:ascii="${esc(S.doc.fonts.latin)}" w:hAnsi="${esc(S.doc.fonts.latin)}" w:cs="${esc(S.doc.fonts.latin)}" w:eastAsia="${esc(S.doc.fonts.eastAsia)}"/>`;
-  const files = unzip(buf);
   for (const f of files) if (/^word\/.*\.xml$/.test(f.name)) {
     let xml = f.data.toString('utf8');
     xml = xml.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, run => {

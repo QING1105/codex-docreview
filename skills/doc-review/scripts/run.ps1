@@ -2,7 +2,7 @@ param([Parameter(ValueFromRemainingArguments=$true)][string[]]$ToolArguments)
 $ErrorActionPreference = 'Stop'
 $node = Join-Path $PSScriptRoot 'runtime\bin\node.exe'
 $runtime = Join-Path $PSScriptRoot 'runtime'
-$expectedVersion = '0.8.5'
+$expectedVersion = '0.8.6'
 $manifest = Join-Path $runtime '.codex-plugin\plugin.json'
 $installedVersion = if (Test-Path -LiteralPath $manifest) { (Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json).version } else { '' }
 if (-not (Test-Path -LiteralPath $node) -or $installedVersion -ne $expectedVersion) {

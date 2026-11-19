@@ -30,7 +30,7 @@ class PipInstallTests(unittest.TestCase):
                 p = subprocess.run([str(python), *args], env=env, capture_output=True, text=True, timeout=120)
                 self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
                 return p.stdout
-            run('-m', 'pip', 'install', 'codex-docreview==0.8.5')
+            run('-m', 'pip', 'install', 'codex-docreview==0.8.6')
             skills = root / '中文 skills'
             for _ in range(2):
                 run('-m', 'codex_docreview', 'install', '--skills-root', str(skills), '--skip-mcp')
@@ -52,7 +52,7 @@ class PipInstallTests(unittest.TestCase):
             handshake = subprocess.run([str(python), str(entry), '--mcp'], input=request, env=env,
                                        capture_output=True, text=True, timeout=20)
             self.assertEqual(handshake.returncode, 0, handshake.stderr)
-            self.assertEqual(json.loads(handshake.stdout)['result']['serverInfo']['version'], '0.8.5')
+            self.assertEqual(json.loads(handshake.stdout)['result']['serverInfo']['version'], '0.8.6')
             # One-click installer takes the same pip path in the isolated environment.
             ps = Path(os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
             p = subprocess.run([str(ps), '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',

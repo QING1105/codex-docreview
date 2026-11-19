@@ -12,6 +12,8 @@ async function ensure(id){
  // Keep an already-open legacy document in its original chat and browser.
  const legacyPort=Number(process.env.DOCREVIEW_PORT||4517),ping=await read(legacyPort,'/api/ping');
  if(ping?.app==='docreview'&&!ping.instance_key){const state=await read(legacyPort,'/api/state');if(state?.agent?.threadId===id)return legacyPort}
+ // Verify the spawning identity before creating a detached process or touching document state.
+ if(process.env.CODEX_APP_TOOLS_PIPE_PATH&&process.env.DOCREVIEW_AUTODISPATCH!=='0')await require('./host-bridge').checkConnection();
  spawn(process.execPath,[__filename,id],{env:process.env,detached:true,stdio:'ignore',windowsHide:true}).unref();
  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,100));const port=await endpoint(id);if(port)return port}
  throw Error('当前聊天的审阅实例启动失败，请检查文档目录的写入权限。');

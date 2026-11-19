@@ -233,7 +233,7 @@ function renderPopup(){
     ${c.status!=='running'?'<button class="sm" data-a="del">删除</button>':''}</div></div>`).join('')||'<div class="hint">选中文档里的文字，即可添加批注。</div>';
   const c=V.comments.find(c=>c.id===active),busy=c&&['running','queued'].includes(c.status);
   const pending=V.queue.find(q=>q.commentId===active&&q.status==='queued');
-  $('#replySend').disabled=!!busy;$('#replyHint').textContent=c?.status==='queued'?(pending?.deliveryError?'发送重试中：'+pending.deliveryError:pending?.delivered?'已送入当前聊天，等待 Codex 领取':'正在发送到当前聊天…'):busy?'正在处理这条批注；回复内容可先写在这里':'回复会交给当前 Codex 聊天处理';
+  $('#replySend').disabled=!!busy;$('#replyHint').textContent=c?.status==='queued'?(pending?.deliveryError?(pending.deliveryBlocked?'发送受阻：':'发送重试中：')+pending.deliveryError:pending?.delivered?'已送入当前聊天，等待 Codex 领取':'正在发送到当前聊天…'):busy?'正在处理这条批注；回复内容可先写在这里':'回复会交给当前 Codex 聊天处理';
   positionPopup();
 }
 function renderControls(){

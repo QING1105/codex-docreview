@@ -17,7 +17,7 @@ const SF = path.join(DATA, 'state.json'), OF = path.join(DATA, 'original.docx');
 let S = { mode: 'suggest', doc: null, blocks: [], baseline: [], comments: [], queue: [], seq: 0, paused: false, user: process.env.DOCREVIEW_USER || os.userInfo().username || 'Reviewer' };
 try { S = Object.assign(S, JSON.parse(fs.readFileSync(SF, 'utf8'))); } catch { }
 for (const q of S.queue) if (['running','queued'].includes(q.status)) {
-  q.status = 'queued'; q.delivered = false; delete q.deliveryError;
+  q.status = 'queued'; q.delivered = false; delete q.deliveryError; delete q.deliveryBlocked;
   q.deliveryId ||= randomUUID();
   q.deliveryGeneration = (q.deliveryGeneration || 0) + 1;
 }
@@ -69,9 +69,9 @@ function log(role, text) { agent.log.push({ role, text, ts: Date.now() }); if (a
 
 // 网页提交直接投递给绑定的 Codex 聊天。
 let dispatchContext = { pipe: process.env.CODEX_APP_TOOLS_PIPE_PATH, hostId: process.env.CODEX_APP_TOOLS_CALLER_HOST_ID };
-let dispatchTimer = null, dispatchBusy = false;
+let dispatchTimer = null, dispatchBusy = false, dispatchBlocked = false;
 function scheduleDispatch(delay = 250) {
-  if (process.env.DOCREVIEW_AUTODISPATCH === '0' || dispatchTimer) return;
+  if (process.env.DOCREVIEW_AUTODISPATCH === '0' || dispatchTimer || dispatchBlocked) return;
   dispatchTimer = setTimeout(() => { dispatchTimer = null; dispatchPending(); }, delay);
 }
 async function dispatchPending() {
@@ -84,9 +84,9 @@ async function dispatchPending() {
   try {
     await notifyThread({ ...dispatchContext, threadId:sessionId, callId:'docreview-'+sessionId+'-'+pending.map(q=>q.deliveryId+'g'+(q.deliveryGeneration||0)).join('-'),
       prompt:`【Doc Review 网页提交】${texts}\n请在这条聊天使用 $doc-review 立即领取并处理批注队列，逐条写回 comment_reply 并完成任务。回复显示在网页批注弹窗中。` });
-    if(S.sessionId===sessionId)for(const q of pending){q.delivered=true;delete q.deliveryError;}
+    if(S.sessionId===sessionId)for(const q of pending){q.delivered=true;delete q.deliveryError;delete q.deliveryBlocked;}
     agent.err=null;
-  } catch(e) { for(const q of pending)q.deliveryError=e.message;agent.err='自动投递正在重试：'+e.message; }
+  } catch(e) { dispatchBlocked=['EPERM','EACCES'].includes(e.code);for(const q of pending){q.deliveryError=e.message;q.deliveryBlocked=dispatchBlocked;}agent.err=(dispatchBlocked?'自动投递权限受阻：':'自动投递正在重试：')+e.message; }
   finally { dispatchBusy=false;emit('state',view());clearTimeout(saveT);saveT=setTimeout(()=>fs.writeFile(SF,JSON.stringify(S),()=>{}),200);
     if(S.queue.some(q=>q.status==='queued'&&!q.delivered))scheduleDispatch(5000);
   }
@@ -150,13 +150,16 @@ function refreshBridge(bridge) {
   if (!bridge?.pipe) return;
   const renewed = dispatchContext.pipe !== bridge.pipe || dispatchContext.hostId !== bridge.host_id;
   dispatchContext = { pipe:bridge.pipe, hostId:bridge.host_id };
+  if (renewed) dispatchBlocked=false;
   if (renewed && dispatchTimer) { clearTimeout(dispatchTimer); dispatchTimer = null; }
   scheduleDispatch();
 }
-function bindSession(id, bridge) {
+async function bindSession(id, bridge) {
   if(process.env.DOCREVIEW_INSTANCE_SESSION && id!==process.env.DOCREVIEW_INSTANCE_SESSION)throw new Error('这个审阅页属于另一条聊天，请在当前聊天调用 doc_review_start 获取独立页面。');
   if (typeof id !== 'string' || !id.trim()) throw new Error('需要当前 Codex 聊天 ID');
   if (S.sessionId && S.sessionId !== id) throw new Error('文档已绑定另一条聊天；请在原聊天中释放审阅后再启动。');
+  // Probe from the daemon itself: an accessible caller may be reusing a sandbox-owned daemon.
+  if(bridge?.pipe&&process.env.DOCREVIEW_AUTODISPATCH!=='0')await require('./host-bridge').checkConnection(bridge.pipe);
   refreshBridge(bridge);
   S.sessionId = id; agent.threadId = id; changed();
   return { session_id: id, url: `http://127.0.0.1:${PORT}/`, mode: 'current-session' };
